@@ -10,7 +10,7 @@ class Head:
         self,
         input_dim,
         output_dim,
-        R,
+        R: list | float,
         imprecise_th,
         bad_th,
         alpha,
@@ -19,8 +19,10 @@ class Head:
     ) -> None:
         self.input_dim = input_dim
         self.output_dim = output_dim
-        self.R = R
-        self.neighborhood_sides = self.R
+        if isinstance(R, float):
+            R = [R]
+        self.R = torch.FloatTensor(R)
+        self.neighborhood_sides = torch.FloatTensor(self.R)
         self.imprecise_th = imprecise_th
         self.bad_th = bad_th
         self.alpha = alpha
@@ -134,7 +136,10 @@ class Head:
         """
         agents_mask = torch.ones(self.agents.n_agents, dtype=torch.bool)
         neighborhoods = batch_create_hypercube(
-            X, torch.full((X.size(0),), self.neighborhood_sides)
+            X,
+            self.neighborhood_sides.expand(
+                (X.size(0),) + self.neighborhood_sides.size()
+            ),
         )
         neighborhood_mask = batch_intersect_hypercubes(
             neighborhoods, self.agents.hypercubes
