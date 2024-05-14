@@ -23,8 +23,8 @@ class Head:
             input_dim (int): size of the input vector.
             output_dim (int): size of the output vector.
             R (list | float): size of the sidelengths of a newly created agent. If R is a list then each value should correspond to a dimension of the input vector.
-            imprecise_th (float): threshold below which an agent's proposition is considered good.
-            bad_th (float): threshold above which an agent's proposition is considered bad.
+            imprecise_th (float): absolute threshold below which an agent's proposition is considered good.
+            bad_th (float): absolute threshold above which an agent's proposition is considered bad.
             alpha (float): coefficient of expansion or retraction of agents.
             memory_length (int, optional): size of an agent's memory. Defaults to 20.
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
