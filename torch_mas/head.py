@@ -8,15 +8,27 @@ from torch_mas.linear_models import *
 class Head:
     def __init__(
         self,
-        input_dim,
-        output_dim,
+        input_dim: int,
+        output_dim: int,
         R: list | float,
-        imprecise_th,
-        bad_th,
-        alpha,
-        memory_length=20,
-        n_epochs=10,
+        imprecise_th: float,
+        bad_th: float,
+        alpha: float,
+        memory_length: int = 20,
+        n_epochs: int = 10,
     ) -> None:
+        """Initialize the learning algorithm.
+
+        Args:
+            input_dim (int): size of the input vector.
+            output_dim (int): size of the output vector.
+            R (list | float): size of the sidelengths of a newly created agent. If R is a list then each value should correspond to a dimension of the input vector.
+            imprecise_th (float): threshold below which an agent's proposition is considered good.
+            bad_th (float): threshold above which an agent's proposition is considered bad.
+            alpha (float): coefficient of expansion or retraction of agents.
+            memory_length (int, optional): size of an agent's memory. Defaults to 20.
+            n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
+        """
         self.input_dim = input_dim
         self.output_dim = output_dim
         if isinstance(R, float):
