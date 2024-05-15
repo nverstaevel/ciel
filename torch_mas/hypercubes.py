@@ -227,3 +227,53 @@ def batch_volume(hypercubes):
         Tensor: (batch_size, 1)
     """
     return _batch_volume(hypercubes)
+
+
+def dist_point_to_border(hypercube, x):
+    """Calculate the distance of a point to the edge of an hypercube
+
+    Args:
+        hypercube (Tensor): (n_dim, 2)
+        x (Tensor): (n_dim,)
+
+    Returns:
+        Tensor: distance of the point to the edge of the specified hypercube
+    """
+    low, high = hypercube[:, 0], hypercube[:, 1]
+    dist_to_low = torch.abs(x - low)
+    dist_to_high = torch.abs(x - high)
+    dists = torch.min(dist_to_low, dist_to_high)
+    min_dist = torch.linalg.norm(dists)
+    return min_dist
+
+
+_batch_dist_point_to_border = torch.vmap(dist_point_to_border, in_dims=(0, None))
+
+
+def batch_dist_point_to_border(hypercubes, x):
+    """Calculate the distance of a point to the edges of a batch of hypercubes
+
+    Args:
+        hypercubes (Tensor): (batch_size, n_dim, 2)
+        x (Tensor): (n_dim,)
+
+    Returns:
+        Tensor: (batch_size,)
+    """
+    return _batch_dist_point_to_border(hypercubes, x)
+
+
+_batch_dist_points_to_border = torch.vmap(batch_dist_point_to_border, in_dims=(None, 0))
+
+
+def batch_dist_points_to_border(hypercubes, x):
+    """Calculate the distance of each point of a batch of points to the edges of a batch of hypercubes
+
+    Args:
+        hypercubes (Tensor): (h_batch_size, n_dim, 2)
+        x (Tensor): (x_batch_size, n_dim)
+
+    Returns:
+        Tensor: (x_batch_size, h_batch_size)
+    """
+    return _batch_dist_points_to_border(hypercubes, x)
