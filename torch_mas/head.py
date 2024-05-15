@@ -16,6 +16,7 @@ class Head:
         alpha: float,
         memory_length: int = 20,
         n_epochs: int = 10,
+        l1=0.0,
     ) -> None:
         """Initialize the learning algorithm.
 
@@ -40,6 +41,7 @@ class Head:
         self.alpha = alpha
         self.memory_length = memory_length
         self.n_epochs = n_epochs
+        self.l1_penalty = l1
 
         self._step = 0
 
@@ -126,7 +128,9 @@ class Head:
             self.agents.update_model(X, y, agents_to_update.long())
 
     def fit(self, dataset):
-        self.agents = Agents(self.input_dim, self.output_dim, self.memory_length)
+        self.agents = Agents(
+            self.input_dim, self.output_dim, self.memory_length, l1=self.l1_penalty
+        )
 
         n_samples = len(dataset)
         idxs = np.arange(0, n_samples)
@@ -146,11 +150,12 @@ class Head:
         Returns:
             Tensor: (batch_size, output_dim)
         """
+        batch_size = X.size(0)
         agents_mask = torch.ones(self.agents.n_agents, dtype=torch.bool)
         neighborhoods = batch_create_hypercube(
             X,
             self.neighborhood_sides.expand(
-                (X.size(0),) + self.neighborhood_sides.size()
+                (batch_size,) + self.neighborhood_sides.size()
             ),
         )
         neighborhood_mask = batch_intersect_hypercubes(
