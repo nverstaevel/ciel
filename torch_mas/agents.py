@@ -16,13 +16,13 @@ class Agents:
             0, input_dim, 2, requires_grad=True
         )  # (n_agents, input_dim, 2) Tensor of hypercubes
         self.models: torch.Tensor = torch.empty(
-            0, input_dim + 1, output_dim, dtype=torch.float, requires_grad=True
+            0, input_dim + 1, output_dim, dtype=torch.float, requires_grad=False
         )  # (n_agents, input_dim+1, output_dim) Tensor of linear models
         self.feature_memories: torch.Tensor = torch.empty(
-            0, memory_length, input_dim, dtype=torch.float, requires_grad=True
+            0, memory_length, input_dim, dtype=torch.float
         )  # (n_agents, memory_length,) Tensor of features
         self.target_memories: torch.Tensor = torch.empty(
-            0, memory_length, output_dim, dtype=torch.float, requires_grad=True
+            0, memory_length, output_dim, dtype=torch.float
         )  # (n_agents, memory_length,) Tensor of targets
         self.memory_sizes: torch.Tensor = torch.empty(
             0, 1, dtype=torch.long
