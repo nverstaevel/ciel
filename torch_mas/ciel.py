@@ -7,15 +7,16 @@ from torch_mas.head import Head
 class Ciel(BaseEstimator):
 
     def __init__(
-            self,
-            input_dim: int,
-            output_dim: int,
-            R: list | float,
-            imprecise_th: float,
-            bad_th: float,
-            alpha: float,
-            memory_length: int = 20,
-            n_epochs: int = 10,
+        self,
+        input_dim: int,
+        output_dim: int,
+        R: list | float,
+        imprecise_th: float,
+        bad_th: float,
+        alpha: float,
+        memory_length: int = 20,
+        n_epochs: int = 10,
+        l1=0.0,
     ) -> None:
         """Initialize the learning algorithm.
 
@@ -28,6 +29,7 @@ class Ciel(BaseEstimator):
             alpha (float): coefficient of expansion or retraction of agents.
             memory_length (int, optional): size of an agent's memory. Defaults to 20.
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
+            l1 (float, optional): coefficient of l1 regularization. Defaults to 0.
         """
         self._estimator_type = "regressor"
         self.base_estimator = Head
@@ -39,14 +41,27 @@ class Ciel(BaseEstimator):
         self.alpha = alpha
         self.memory_length = memory_length
         self.n_epochs = n_epochs
+        self.l1 = l1
 
-        self.estimator = Head(self.input_dim,self.output_dim,self.R,self.imprecise_th,self.bad_th,self.alpha,self.memory_length,self.n_epochs)
+        self.estimator = Head(
+            self.input_dim,
+            self.output_dim,
+            self.R,
+            self.imprecise_th,
+            self.bad_th,
+            self.alpha,
+            self.memory_length,
+            self.n_epochs,
+            self.l1,
+        )
 
     def fit(self, X, y):
         return self.estimator.fit(DataBuffer(X, y))
 
     def predict(self, X):
-        return self.estimator.predict(torch.from_numpy(X).float()).round().detach().numpy()
+        return (
+            self.estimator.predict(torch.from_numpy(X).float()).round().detach().numpy()
+        )
 
     def set_params(self, **params):
         if not params:
@@ -58,5 +73,14 @@ class Ciel(BaseEstimator):
             else:
                 self.kwargs[key] = value
 
-        self.estimator = Head(self.input_dim,self.output_dim,self.R,self.imprecise_th,self.bad_th,self.alpha,self.memory_length,self.n_epochs)
+        self.estimator = Head(
+            self.input_dim,
+            self.output_dim,
+            self.R,
+            self.imprecise_th,
+            self.bad_th,
+            self.alpha,
+            self.memory_length,
+            self.n_epochs,
+        )
         return self
