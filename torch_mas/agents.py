@@ -7,22 +7,23 @@ from torch_mas.hypercubes import *
 
 
 class Agents:
-    def __init__(self, input_dim, output_dim, memory_length) -> None:
+    def __init__(self, input_dim, output_dim, memory_length, l1=0.1) -> None:
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.memory_length = memory_length
+        self.l1_penalty = l1
 
         self.hypercubes: torch.Tensor = torch.empty(
             0, input_dim, 2, requires_grad=True
         )  # (n_agents, input_dim, 2) Tensor of hypercubes
         self.models: torch.Tensor = torch.empty(
-            0, input_dim + 1, output_dim, dtype=torch.float, requires_grad=True
+            0, input_dim + 1, output_dim, dtype=torch.float, requires_grad=False
         )  # (n_agents, input_dim+1, output_dim) Tensor of linear models
         self.feature_memories: torch.Tensor = torch.empty(
-            0, memory_length, input_dim, dtype=torch.float, requires_grad=True
+            0, memory_length, input_dim, dtype=torch.float
         )  # (n_agents, memory_length,) Tensor of features
         self.target_memories: torch.Tensor = torch.empty(
-            0, memory_length, output_dim, dtype=torch.float, requires_grad=True
+            0, memory_length, output_dim, dtype=torch.float
         )  # (n_agents, memory_length,) Tensor of targets
         self.memory_sizes: torch.Tensor = torch.empty(
             0, 1, dtype=torch.long
@@ -105,7 +106,9 @@ class Agents:
         X = self.feature_memories[agents_idxs]
         y = self.target_memories[agents_idxs]
         # update agents
-        updated_models = batch_fit_linear_regression(X, y, weights)
+        updated_models = batch_fit_linear_regression(
+            X, y, weights, l1_penalty=self.l1_penalty
+        )
         # save updated models
         self.models[agents_idxs] = updated_models
 
