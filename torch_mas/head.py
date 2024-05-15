@@ -174,7 +174,7 @@ class Head:
         y_hat = self.agents.predict(X, agents_mask).transpose(0, 1)
 
         W = mask.float().unsqueeze(-1)
-        nan_mask = ~mask.any(dim=-1)  # check if no agents are selected
+        nan_mask = ~(mask.any(dim=-1))  # check if no agents are selected
         W[nan_mask] = closest_mask[nan_mask].float()
 
         return (y_hat * W).sum(1) / W.sum(1)
