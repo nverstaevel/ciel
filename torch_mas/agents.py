@@ -7,10 +7,11 @@ from torch_mas.hypercubes import *
 
 
 class Agents:
-    def __init__(self, input_dim, output_dim, memory_length) -> None:
+    def __init__(self, input_dim, output_dim, memory_length, l1=0.1) -> None:
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.memory_length = memory_length
+        self.l1_penalty = l1
 
         self.hypercubes: torch.Tensor = torch.empty(
             0, input_dim, 2, requires_grad=True
@@ -105,7 +106,9 @@ class Agents:
         X = self.feature_memories[agents_idxs]
         y = self.target_memories[agents_idxs]
         # update agents
-        updated_models = batch_fit_linear_regression(X, y, weights)
+        updated_models = batch_fit_linear_regression(
+            X, y, weights, l1_penalty=self.l1_penalty
+        )
         # save updated models
         self.models[agents_idxs] = updated_models
 

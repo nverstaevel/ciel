@@ -1,7 +1,7 @@
 import torch
 
 
-def fit_linear_regression(X, y, weights):
+def fit_linear_regression(X, y, weights, l1_penalty=0.1):
     """Perform a weighted linear regression
 
     Args:
@@ -19,14 +19,20 @@ def fit_linear_regression(X, y, weights):
     y_weighted = W @ y
     # Concatenate a column of ones to X for the bias term
     # Compute parameters
-    parameters = torch.linalg.lstsq(X_weighted, y_weighted).solution
+    identity_matrix = torch.eye(X_weighted.size(1))
+    parameters = torch.linalg.lstsq(
+        X_weighted.T @ X_weighted + l1_penalty * identity_matrix,
+        X_weighted.T @ y_weighted,
+    ).solution
     return parameters
 
 
-_batch_fit_linear_regression = torch.vmap(fit_linear_regression)
+_batch_fit_linear_regression = torch.vmap(
+    fit_linear_regression, in_dims=(0, 0, 0, None)
+)
 
 
-def batch_fit_linear_regression(X, y, weights):
+def batch_fit_linear_regression(X, y, weights, l1_penalty=0.1):
     """Perform a batch of weighted linear regression
 
     Args:
@@ -37,7 +43,7 @@ def batch_fit_linear_regression(X, y, weights):
     Returns:
         Tensor: (n_parameter_set, input_dim + 1, output_dim)
     """
-    return _batch_fit_linear_regression(X, y, weights)
+    return _batch_fit_linear_regression(X, y, weights, l1_penalty)
 
 
 def predict_linear_regression(X, parameters):
