@@ -60,7 +60,7 @@ class Ciel(BaseEstimator):
 
     def predict(self, X):
         return (
-            self.estimator.predict(torch.from_numpy(X).float()).round().detach().numpy()
+            self.estimator.predict(torch.from_numpy(X).float()).detach().numpy()
         )
 
     def set_params(self, **params):
