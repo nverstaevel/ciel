@@ -65,18 +65,12 @@ class Head:
         n_activated = torch.count_nonzero(activated_agents)
 
         agents_to_update = torch.empty(0)
-
         if n_activated == 0 and n_neighbors == 0:
             created_idxs = self.agents.create_agents(X, self.R)
             agents_to_update = torch.concat([agents_to_update, created_idxs])
 
         if n_activated == 0 and n_neighbors > 0:
-            expanded_neighbors = batch_update_hypercube(
-                self.agents.hypercubes[neighborhood_agents],
-                X.squeeze(0),
-                torch.full((n_neighbors,), self.alpha),
-            )
-            expanded_mask = batch_intersect_point(expanded_neighbors, X)
+            expanded_mask = self.agents.immediate_expandable(X, neighborhood_agents)
             expanded_idxs = torch.arange(self.agents.n_agents)[neighborhood_agents][
                 expanded_mask
             ]
@@ -90,11 +84,10 @@ class Head:
                 good = score <= self.imprecise_th
                 bad = score > self.bad_th
 
-                alphas = torch.zeros((n_expand_candidates, 1))
-                alphas[~bad] = self.alpha  # expansion
-                self.agents.update_hypercube(
-                    X, agents_idxs=expanded_idxs, alphas=alphas
-                )
+                fb_t = torch.zeros((n_expand_candidates, 1))
+                fb_t[~bad] = +1  # good feedback
+                fb_t[bad] = -1  # bad feedback
+                self.agents.update_hypercube(X, expanded_idxs, fb_t, n_activated)
 
                 agents_to_update = torch.arange(self.agents.n_agents)[expanded_idxs][
                     ~bad & ~good
@@ -111,18 +104,20 @@ class Head:
                 created_idxs = self.agents.create_agents(X, radius)
                 agents_to_update = torch.concat([agents_to_update, created_idxs])
         if n_activated > 0:
-            predictions = self.agents.predict(X, activated_agents)
+            agents_mask = activated_agents
+            predictions = self.agents.predict(X, agents_mask)
             score = self.score(predictions, y).squeeze(-1)  # (n_predictions,)
-            activated_maturity = self.agents.maturity(activated_agents).squeeze(-1)
+            activated_maturity = self.agents.maturity(agents_mask).squeeze(-1)
 
             good = score <= self.imprecise_th
             bad = score > self.bad_th
 
-            alphas = torch.zeros((n_activated, 1))
-            alphas[bad & activated_maturity] = -self.alpha  # retraction
-            self.agents.update_hypercube(X, agents_idxs=activated_agents, alphas=alphas)
+            fb_t = torch.zeros((torch.count_nonzero(agents_mask), 1))
+            fb_t[good] = +1  # good feedback
+            fb_t[bad] = -1  # bad feedback
+            self.agents.update_hypercube(X, agents_mask, fb_t, n_activated)
 
-            agents_to_update = torch.arange(self.agents.n_agents)[activated_agents][
+            agents_to_update = torch.arange(self.agents.n_agents)[agents_mask][
                 ~bad & ~good | ~activated_maturity
             ]
         if agents_to_update.size(0) > 0:
@@ -130,7 +125,11 @@ class Head:
 
     def fit(self, dataset):
         self.agents = Agents(
-            self.input_dim, self.output_dim, self.memory_length, l1=self.l1_penalty
+            self.input_dim,
+            self.output_dim,
+            self.memory_length,
+            self.alpha,
+            l1=self.l1_penalty,
         )
 
         n_samples = len(dataset)
