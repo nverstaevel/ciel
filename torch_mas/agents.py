@@ -7,10 +7,11 @@ from torch_mas.hypercubes import *
 
 
 class Agents:
-    def __init__(self, input_dim, output_dim, memory_length, l1=0.1) -> None:
+    def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.memory_length = memory_length
+        self.alpha = alpha
         self.l1_penalty = l1
 
         self.hypercubes: torch.Tensor = torch.empty(
@@ -116,7 +117,8 @@ class Agents:
         self,
         X: torch.Tensor,
         agents_idxs: torch.LongTensor | torch.BoolTensor,
-        alphas: torch.FloatTensor,
+        fb: torch.FloatTensor,
+        n_activated: float,
     ):
         """Update hypercube of sepcified agents.
 
@@ -125,6 +127,10 @@ class Agents:
             agents_idxs (LongTensor | BoolTensor): (n_agents,)
             alphas (FloatTensor): (n_agents,)
         """
+        alphas = torch.zeros((agents_idxs.count_nonzero(), 1))
+        fb[fb == 1 & (n_activated > 0)] = 0
+        alphas = self.alpha * fb
+
         updated_hypercubes = batch_update_hypercube(
             self.hypercubes[agents_idxs], X.squeeze(0), alphas
         )
@@ -155,6 +161,25 @@ class Agents:
         neighborhood = create_hypercube(X.squeeze(0), side_length)
         neighbor_mask = batch_intersect_hypercube(neighborhood, self.hypercubes)
         return neighbor_mask
+
+    def immediate_expandable(self, X, agents_idxs):
+        """Get a mask of agents that can do a one-step expansion to include X
+
+        Args:
+            X (Tensor): (1, input_dim)
+            agents_idxs (BoolTensor): (n_agents,)
+
+        Returns:
+            BoolTensor: (n_agents,)
+        """
+        n_agents = torch.count_nonzero(agents_idxs)
+        expanded_neighbors = batch_update_hypercube(
+            self.hypercubes[agents_idxs],
+            X.squeeze(0),
+            torch.full((n_agents,), self.alpha),
+        )
+        expanded_mask = batch_intersect_point(expanded_neighbors, X)
+        return expanded_mask
 
     def maturity(self, agents_idxs):
         """Get maturity of specified agents
