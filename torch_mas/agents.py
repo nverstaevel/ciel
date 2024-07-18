@@ -217,3 +217,31 @@ class Agents:
         """
         y_pred = batch_predict_linear_regression(X, self.models[agents_idxs])
         return y_pred
+
+    def __call__(
+        self, X: torch.FloatTensor, neighborhood_sides: torch.FloatTensor
+    ) -> torch.Any:
+        batch_size = X.size(0)
+        agents_mask = torch.ones(self.n_agents, dtype=torch.bool)
+        neighborhoods = batch_create_hypercube(
+            X,
+            neighborhood_sides.expand((batch_size,) + neighborhood_sides.size()),
+        )
+        neighborhood_mask = batch_intersect_hypercubes(neighborhoods, self.hypercubes)
+        maturity_mask = self.maturity(agents_mask)
+        activated_mask = batch_intersect_points(self.hypercubes, X)
+        distances = batch_dist_points_to_border(self.hypercubes, X)
+        closest_mask = (
+            torch.zeros_like(distances, dtype=torch.bool)
+            .scatter(1, distances.argsort()[:, :3], True)
+            .unsqueeze(-1)
+        )
+        mask = (neighborhood_mask) & maturity_mask.T
+
+        y_hat = self.predict(X, agents_mask).transpose(0, 1)
+
+        W = mask.float().unsqueeze(-1)
+        nan_mask = ~(mask.any(dim=-1))  # check if no agents are selected
+        W[nan_mask] = closest_mask[nan_mask].float()
+
+        return (y_hat * W).sum(1) / W.sum(1)

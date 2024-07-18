@@ -146,31 +146,4 @@ class Head:
         Returns:
             Tensor: (batch_size, output_dim)
         """
-        batch_size = X.size(0)
-        agents_mask = torch.ones(self.agents.n_agents, dtype=torch.bool)
-        neighborhoods = batch_create_hypercube(
-            X,
-            self.neighborhood_sides.expand(
-                (batch_size,) + self.neighborhood_sides.size()
-            ),
-        )
-        neighborhood_mask = batch_intersect_hypercubes(
-            neighborhoods, self.agents.hypercubes
-        )
-        maturity_mask = self.agents.maturity(agents_mask)
-        activated_mask = batch_intersect_points(self.agents.hypercubes, X)
-        distances = batch_dist_points_to_border(self.agents.hypercubes, X)
-        closest_mask = (
-            torch.zeros_like(distances, dtype=torch.bool)
-            .scatter(1, distances.argsort()[:, :3], True)
-            .unsqueeze(-1)
-        )
-        mask = (neighborhood_mask) & maturity_mask.T
-
-        y_hat = self.agents.predict(X, agents_mask).transpose(0, 1)
-
-        W = mask.float().unsqueeze(-1)
-        nan_mask = ~(mask.any(dim=-1))  # check if no agents are selected
-        W[nan_mask] = closest_mask[nan_mask].float()
-
-        return (y_hat * W).sum(1) / W.sum(1)
+        return self.agents(X, self.neighborhood_sides)
