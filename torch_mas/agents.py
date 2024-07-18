@@ -117,19 +117,29 @@ class Agents:
         self,
         X: torch.Tensor,
         agents_idxs: torch.LongTensor | torch.BoolTensor,
-        fb: torch.FloatTensor,
-        n_activated: float,
+        good: torch.BoolTensor,
+        bad: torch.BoolTensor,
+        no_activated: bool = False,
     ):
         """Update hypercube of sepcified agents.
 
         Args:
             X (Tensor): (1, input_dim,)
-            agents_idxs (LongTensor | BoolTensor): (n_agents,)
-            alphas (FloatTensor): (n_agents,)
+            agents_idxs (LongTensor | BoolTensor): (n_agents_to_update,) | (n_agents,)
+            good (BoolTensor): (n_agents_to_update,) | (n_agents,)
+            bad (BoolTensor): (n_agents_to_update,) | (n_agents,)
+            no_activated (bool): True if at least 1 agent activated by X
         """
-        alphas = torch.zeros((agents_idxs.count_nonzero(), 1))
-        fb[fb == 1 & (n_activated > 0)] = 0
-        alphas = self.alpha * fb
+        n_agents = (
+            agents_idxs.size(0)
+            if isinstance(agents_idxs, torch.LongTensor)
+            else agents_idxs.count_nonzero()
+        )
+        alphas = torch.zeros((n_agents, 1))
+        if no_activated:
+            alphas[~bad] = self.alpha
+        else:
+            alphas[bad] = -self.alpha
 
         updated_hypercubes = batch_update_hypercube(
             self.hypercubes[agents_idxs], X.squeeze(0), alphas

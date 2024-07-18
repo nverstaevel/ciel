@@ -84,10 +84,9 @@ class Head:
                 good = score <= self.imprecise_th
                 bad = score > self.bad_th
 
-                fb_t = torch.zeros((n_expand_candidates, 1))
-                fb_t[~bad] = +1  # good feedback
-                fb_t[bad] = -1  # bad feedback
-                self.agents.update_hypercube(X, expanded_idxs, fb_t, n_activated)
+                self.agents.update_hypercube(
+                    X, expanded_idxs, good, bad, no_activated=True
+                )
 
                 agents_to_update = torch.arange(self.agents.n_agents)[expanded_idxs][
                     ~bad & ~good
@@ -112,10 +111,7 @@ class Head:
             good = score <= self.imprecise_th
             bad = score > self.bad_th
 
-            fb_t = torch.zeros((torch.count_nonzero(agents_mask), 1))
-            fb_t[good] = +1  # good feedback
-            fb_t[bad] = -1  # bad feedback
-            self.agents.update_hypercube(X, agents_mask, fb_t, n_activated)
+            self.agents.update_hypercube(X, agents_mask, good, bad, no_activated=False)
 
             agents_to_update = torch.arange(self.agents.n_agents)[agents_mask][
                 ~bad & ~good | ~activated_maturity
