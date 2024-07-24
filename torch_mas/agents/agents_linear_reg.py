@@ -5,34 +5,15 @@ from torch_mas.linear_models import (
 )
 from torch_mas.hypercubes import *
 
+from . import Agents
 
-class Agents:
+class AgentsLinear(Agents):
     def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.memory_length = memory_length
-        self.alpha = alpha
-        self.l1_penalty = l1
+        super().__init__(input_dim, output_dim, memory_length, alpha, l1)
 
-        self.hypercubes: torch.Tensor = torch.empty(
-            0, input_dim, 2, requires_grad=True
-        )  # (n_agents, input_dim, 2) Tensor of hypercubes
         self.models: torch.Tensor = torch.empty(
             0, input_dim + 1, output_dim, dtype=torch.float, requires_grad=False
         )  # (n_agents, input_dim+1, output_dim) Tensor of linear models
-        self.feature_memories: torch.Tensor = torch.empty(
-            0, memory_length, input_dim, dtype=torch.float
-        )  # (n_agents, memory_length,) Tensor of features
-        self.target_memories: torch.Tensor = torch.empty(
-            0, memory_length, output_dim, dtype=torch.float
-        )  # (n_agents, memory_length,) Tensor of targets
-        self.memory_sizes: torch.Tensor = torch.empty(
-            0, 1, dtype=torch.long
-        )  # (n_agents, 1) Tensor of fill memory levels
-
-    @property
-    def n_agents(self):
-        return self.hypercubes.size(0)
 
     def create_agents(self, X, side_lengths):
         """Create agents
@@ -145,63 +126,6 @@ class Agents:
             self.hypercubes[agents_idxs], X.squeeze(0), alphas
         )
         self.hypercubes[agents_idxs] = updated_hypercubes
-
-    def activated(self, X):
-        """Get activated agents mask
-
-        Args:
-            X (Tensor): (input_dim,)
-
-        Returns:
-            BoolTensor: (n_agents_activated,)
-        """
-        agent_mask = batch_intersect_point(self.hypercubes, X)
-        return agent_mask
-
-    def neighbors(self, X, side_length):
-        """Get neighbors agents mask
-
-        Args:
-            X (Tensor): (1, input_dim)
-            side_length (Tensor): (n_dim,) | (1,)
-
-        Returns:
-            BoolTensor: (n_agents_neighbors,)
-        """
-        neighborhood = create_hypercube(X.squeeze(0), side_length)
-        neighbor_mask = batch_intersect_hypercube(neighborhood, self.hypercubes)
-        return neighbor_mask
-
-    def immediate_expandable(self, X, agents_idxs):
-        """Get a mask of agents that can do a one-step expansion to include X
-
-        Args:
-            X (Tensor): (1, input_dim)
-            agents_idxs (BoolTensor): (n_agents,)
-
-        Returns:
-            BoolTensor: (n_agents,)
-        """
-        n_agents = torch.count_nonzero(agents_idxs)
-        expanded_neighbors = batch_update_hypercube(
-            self.hypercubes[agents_idxs],
-            X.squeeze(0),
-            torch.full((n_agents,), self.alpha),
-        )
-        expanded_mask = batch_intersect_point(expanded_neighbors, X)
-        return expanded_mask
-
-    def maturity(self, agents_idxs):
-        """Get maturity of specified agents
-
-        Args:
-            agents_idxs (LongTensor | BoolTensor): (n_agents,)
-
-        Returns:
-            BoolTensor: (n_agents,)
-        """
-        # return self.memory_sizes[agents_idxs] > (self.input_dim+self.output_dim)
-        return self.memory_sizes[agents_idxs] > (self.input_dim + 1)
 
     def predict(
         self, X: torch.FloatTensor, agents_idxs: torch.LongTensor | torch.BoolTensor

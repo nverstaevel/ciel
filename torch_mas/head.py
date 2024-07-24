@@ -14,6 +14,7 @@ class Head:
         imprecise_th: float,
         bad_th: float,
         alpha: float,
+        agents: Agents,
         memory_length: int = 20,
         n_epochs: int = 10,
         l1=0.0,
@@ -27,6 +28,7 @@ class Head:
             imprecise_th (float): absolute threshold below which an agent's proposition is considered good.
             bad_th (float): absolute threshold above which an agent's proposition is considered bad.
             alpha (float): coefficient of expansion or retraction of agents.
+            agents (Agents): type of agents. It must heritate of the Agents class.
             memory_length (int, optional): size of an agent's memory. Defaults to 20.
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
             l1 (float, optional): coefficient of l1 regularization. Defaults to 0.
@@ -43,6 +45,14 @@ class Head:
         self.memory_length = memory_length
         self.n_epochs = n_epochs
         self.l1_penalty = l1
+
+        self.agents = agents(
+            self.input_dim,
+            self.output_dim,
+            self.memory_length,
+            self.alpha,
+            l1=self.l1_penalty,
+        )
 
         self._step = 0
 
@@ -120,14 +130,6 @@ class Head:
             self.agents.update_model(X, y, agents_to_update.long())
 
     def fit(self, dataset):
-        self.agents = Agents(
-            self.input_dim,
-            self.output_dim,
-            self.memory_length,
-            self.alpha,
-            l1=self.l1_penalty,
-        )
-
         n_samples = len(dataset)
         idxs = np.arange(0, n_samples)
         np.random.shuffle(idxs)
