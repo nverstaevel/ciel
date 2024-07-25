@@ -2,6 +2,7 @@ import torch
 from sklearn.base import BaseEstimator
 from torch_mas.data import DataBuffer
 from torch_mas.head import Head
+from torch_mas.agents import Agents
 
 
 class Ciel(BaseEstimator):
@@ -14,6 +15,7 @@ class Ciel(BaseEstimator):
         imprecise_th: float,
         bad_th: float,
         alpha: float,
+        agents:Agents,
         memory_length: int = 20,
         n_epochs: int = 10,
         l1=0.0,
@@ -42,6 +44,7 @@ class Ciel(BaseEstimator):
         self.memory_length = memory_length
         self.n_epochs = n_epochs
         self.l1 = l1
+        self.agents = agents
 
         self.estimator = Head(
             self.input_dim,
@@ -50,6 +53,7 @@ class Ciel(BaseEstimator):
             self.imprecise_th,
             self.bad_th,
             self.alpha,
+            self.agents,
             self.memory_length,
             self.n_epochs,
             self.l1,

@@ -14,6 +14,7 @@ class Head:
         imprecise_th: float,
         bad_th: float,
         alpha: float,
+        agents: Agents,
         memory_length: int = 20,
         n_epochs: int = 10,
         l1=0.0,
@@ -27,6 +28,7 @@ class Head:
             imprecise_th (float): absolute threshold below which an agent's proposition is considered good.
             bad_th (float): absolute threshold above which an agent's proposition is considered bad.
             alpha (float): coefficient of expansion or retraction of agents.
+            agents (Agents): type of agents. It must heritate of the Agents class.
             memory_length (int, optional): size of an agent's memory. Defaults to 20.
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
             l1 (float, optional): coefficient of l1 regularization. Defaults to 0.
@@ -43,6 +45,14 @@ class Head:
         self.memory_length = memory_length
         self.n_epochs = n_epochs
         self.l1_penalty = l1
+
+        self.agents = agents(
+            self.input_dim,
+            self.output_dim,
+            self.memory_length,
+            self.alpha,
+            l1=self.l1_penalty,
+        )
 
         self._step = 0
 
@@ -65,18 +75,12 @@ class Head:
         n_activated = torch.count_nonzero(activated_agents)
 
         agents_to_update = torch.empty(0)
-
         if n_activated == 0 and n_neighbors == 0:
             created_idxs = self.agents.create_agents(X, self.R)
             agents_to_update = torch.concat([agents_to_update, created_idxs])
 
         if n_activated == 0 and n_neighbors > 0:
-            expanded_neighbors = batch_update_hypercube(
-                self.agents.hypercubes[neighborhood_agents],
-                X.squeeze(0),
-                torch.full((n_neighbors,), self.alpha),
-            )
-            expanded_mask = batch_intersect_point(expanded_neighbors, X)
+            expanded_mask = self.agents.immediate_expandable(X, neighborhood_agents)
             expanded_idxs = torch.arange(self.agents.n_agents)[neighborhood_agents][
                 expanded_mask
             ]
@@ -90,10 +94,8 @@ class Head:
                 good = score <= self.imprecise_th
                 bad = score > self.bad_th
 
-                alphas = torch.zeros((n_expand_candidates, 1))
-                alphas[~bad] = self.alpha  # expansion
                 self.agents.update_hypercube(
-                    X, agents_idxs=expanded_idxs, alphas=alphas
+                    X, expanded_idxs, good, bad, no_activated=True
                 )
 
                 agents_to_update = torch.arange(self.agents.n_agents)[expanded_idxs][
@@ -111,28 +113,23 @@ class Head:
                 created_idxs = self.agents.create_agents(X, radius)
                 agents_to_update = torch.concat([agents_to_update, created_idxs])
         if n_activated > 0:
-            predictions = self.agents.predict(X, activated_agents)
+            agents_mask = activated_agents
+            predictions = self.agents.predict(X, agents_mask)
             score = self.score(predictions, y).squeeze(-1)  # (n_predictions,)
-            activated_maturity = self.agents.maturity(activated_agents).squeeze(-1)
+            activated_maturity = self.agents.maturity(agents_mask).squeeze(-1)
 
             good = score <= self.imprecise_th
             bad = score > self.bad_th
 
-            alphas = torch.zeros((n_activated, 1))
-            alphas[bad & activated_maturity] = -self.alpha  # retraction
-            self.agents.update_hypercube(X, agents_idxs=activated_agents, alphas=alphas)
+            self.agents.update_hypercube(X, agents_mask, good, bad, no_activated=False)
 
-            agents_to_update = torch.arange(self.agents.n_agents)[activated_agents][
+            agents_to_update = torch.arange(self.agents.n_agents)[agents_mask][
                 ~bad & ~good | ~activated_maturity
             ]
         if agents_to_update.size(0) > 0:
             self.agents.update_model(X, y, agents_to_update.long())
 
     def fit(self, dataset):
-        self.agents = Agents(
-            self.input_dim, self.output_dim, self.memory_length, l1=self.l1_penalty
-        )
-
         n_samples = len(dataset)
         idxs = np.arange(0, n_samples)
         np.random.shuffle(idxs)
@@ -151,31 +148,4 @@ class Head:
         Returns:
             Tensor: (batch_size, output_dim)
         """
-        batch_size = X.size(0)
-        agents_mask = torch.ones(self.agents.n_agents, dtype=torch.bool)
-        neighborhoods = batch_create_hypercube(
-            X,
-            self.neighborhood_sides.expand(
-                (batch_size,) + self.neighborhood_sides.size()
-            ),
-        )
-        neighborhood_mask = batch_intersect_hypercubes(
-            neighborhoods, self.agents.hypercubes
-        )
-        maturity_mask = self.agents.maturity(agents_mask)
-        activated_mask = batch_intersect_points(self.agents.hypercubes, X)
-        distances = batch_dist_points_to_border(self.agents.hypercubes, X)
-        closest_mask = (
-            torch.zeros_like(distances, dtype=torch.bool)
-            .scatter(1, distances.argsort()[:, :3], True)
-            .unsqueeze(-1)
-        )
-        mask = (neighborhood_mask) & maturity_mask.T
-
-        y_hat = self.agents.predict(X, agents_mask).transpose(0, 1)
-
-        W = mask.float().unsqueeze(-1)
-        nan_mask = ~(mask.any(dim=-1))  # check if no agents are selected
-        W[nan_mask] = closest_mask[nan_mask].float()
-
-        return (y_hat * W).sum(1) / W.sum(1)
+        return self.agents(X, self.neighborhood_sides)
