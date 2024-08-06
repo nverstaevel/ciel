@@ -1,7 +1,7 @@
 import torch
 from torch_mas.hypercubes import *
-
 from abc import ABC, abstractmethod
+
 
 class Agents(ABC):
     def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
@@ -23,6 +23,9 @@ class Agents(ABC):
         self.memory_sizes: torch.Tensor = torch.empty(
             0, 1, dtype=torch.long
         )  # (n_agents, 1) Tensor of fill memory levels
+        self.memory_ptr: torch.Tensor = torch.empty(
+            0, 1, dtype=torch.long
+        )  # (n_agents, 1) Tensor of fill memory levels
 
     @property
     def n_agents(self):
@@ -35,7 +38,7 @@ class Agents(ABC):
             X (Tensor): (input_dim,)
 
         Returns:
-            BoolTensor: (n_agents_activated,)
+            BoolTensor: (n_agents,)
         """
         agent_mask = batch_intersect_point(self.hypercubes, X)
         return agent_mask
@@ -48,7 +51,7 @@ class Agents(ABC):
             side_length (Tensor): (n_dim,) | (1,)
 
         Returns:
-            BoolTensor: (n_agents_neighbors,)
+            BoolTensor: (n_agents,)
         """
         neighborhood = create_hypercube(X.squeeze(0), side_length)
         neighbor_mask = batch_intersect_hypercube(neighborhood, self.hypercubes)

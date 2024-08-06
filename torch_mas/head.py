@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+
 from torch_mas.agents import Agents
 from torch_mas.hypercubes import *
 from torch_mas.linear_models import *
@@ -53,8 +54,6 @@ class Head:
             self.alpha,
             l1=self.l1_penalty,
         )
-
-        self._step = 0
 
     def score(self, y_pred: torch.FloatTensor, y: torch.FloatTensor):
         """Calculate the mean squared error
