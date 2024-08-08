@@ -83,7 +83,7 @@ class Agents(ABC):
             agents_idxs (LongTensor | BoolTensor): (n_agents,)
 
         Returns:
-            BoolTensor: (n_agents,)
+            BoolTensor: (n_agents, 1)
         """
         return self.memory_sizes[agents_idxs] > (self.input_dim + 1)
 
