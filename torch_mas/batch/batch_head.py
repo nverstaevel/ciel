@@ -133,7 +133,12 @@ class BatchHead:
             )
 
         # create new agents
-        created_mask = self.agents.create_agents(X[agents_to_create], self.R)
+        # TODO: set initial agent size to be the mean of neighbors
+        # TODO: make create_agents return models_to_init
+        # TODO: make create_agents take as argument the whole batch
+        created_mask = self.agents.create_agents(
+            X[agents_to_create], self.R.repeat(X[agents_to_create].size())
+        )
         n_created = torch.sum(created_mask, dim=-1)
         models_to_init = torch.zeros((n_created, batch_size), dtype=torch.bool)
         # add models to init to update
@@ -144,13 +149,11 @@ class BatchHead:
 
     def fit(self, dataset):
         n_samples = len(dataset)
-        batch_size = 64
-
         self._step = 0
         for _ in range(self.n_epochs):
             indices = torch.arange(n_samples)
             shuffled_indices = indices[torch.randperm(indices.size(0))]
-            batches = shuffled_indices.split(batch_size)
+            batches = shuffled_indices.split(self.batch_size)
             for batch in batches:
                 X, y = dataset[batch]
                 self.partial_fit(X, y)
