@@ -140,18 +140,9 @@ class BatchLinearAgent(AgentsLinear):
         deltas = deltas.sum(dim=0)  # (n_agents, in_dim, 2)
         self.hypercubes += deltas
 
-    def update_model(
+    def _update_memories(
         self, X: torch.Tensor, y: torch.Tensor, agent_mask: torch.BoolTensor
     ):
-        """Update the local model of specified agents.
-
-        Args:
-            X (Tensor): (batch_size, input_dim)
-            y (Tensor): (batch_size, output_dim)
-            agent_mask (BoolTensor): (n_agents, batch_size)
-        """
-        # update memory
-        # TODO: vectorize this part of the code to enable fast GPU acceleration
         nb_to_add_per_agent = agent_mask.sum(-1)
         for agent_id, mask in enumerate(agent_mask):
             nb_to_add = nb_to_add_per_agent[agent_id]
@@ -165,9 +156,24 @@ class BatchLinearAgent(AgentsLinear):
             self.memory_sizes < self.memory_length, nb_to_add_per_agent.view(-1, 1), 0
         )
         self.memory_ptr += nb_to_add_per_agent.view(-1, 1)
-
-        # update model
         agents_to_update = nb_to_add_per_agent > 0
+
+        return agents_to_update
+
+    def update_model(
+        self, X: torch.Tensor, y: torch.Tensor, agent_mask: torch.BoolTensor
+    ):
+        """Update the local model of specified agents.
+
+        Args:
+            X (Tensor): (batch_size, input_dim)
+            y (Tensor): (batch_size, output_dim)
+            agent_mask (BoolTensor): (n_agents, batch_size)
+        """
+        # update memory
+        # TODO: vectorize this part of the code to enable fast GPU acceleration
+        agents_to_update = self._update_memories(X, y, agent_mask)
+
         # build weights for regression
         weights = (
             torch.arange(self.memory_length) < (self.memory_sizes[agents_to_update])
