@@ -15,20 +15,47 @@ class BatchLinearAgent(AgentsLinear):
     def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
         super().__init__(input_dim, output_dim, memory_length, alpha, l1)
 
-    def create_agents(self, X, side_lengths):
+    def create_agents(self, X, agents_to_create, side_lengths):
         """Create agents
 
         Args:
-            X_idxs (Tensor): (batch_size, n_dim)
+            X (Tensor): (batch_size, n_dim)
+            agents_to_create (BoolTensor): (batch_size,)
             side_lengths (Tensor): (batch_size, n_dim)
 
         Returns:
-            BoolTensor: (batch_size,)
+            BoolTensor: (n_created, batch_size,)
         """
-        created_idxs = super().create_agents(X, side_lengths)
-        created_mask = torch.zeros(self.n_agents, dtype=torch.bool)
-        created_mask[created_idxs] = True
-        return created_mask
+        batch_size = X.size(0)
+        lows = X - side_lengths / 2
+        highs = X + side_lengths / 2
+        hypercubes = torch.stack([lows, highs], dim=-1)  # (batch_size,)
+        agents_mask = (
+            batch_intersect_points(hypercubes, X) & agents_to_create
+        )  # (batch_size, n_hypercubes)
+
+        # reduce number of created if possible
+        covered_mask = torch.where(agents_to_create, False, True)  # (batch_size,)
+        selected_mask = torch.zeros(batch_size, dtype=torch.bool)
+        while not covered_mask.all():
+            new_covered_mask = agents_mask | covered_mask  # (batch_size, n_hypercubes)
+            n_newly_covered = torch.sum(
+                new_covered_mask ^ covered_mask, dim=-1
+            )  # (batch_size,)
+            selected_id = torch.argmax(n_newly_covered, dim=-1)
+            selected_mask[selected_id] = True
+            covered_mask = new_covered_mask[selected_id]
+
+        agents_to_create = selected_mask
+        created_idxs = super().create_agents(
+            X[agents_to_create], side_lengths[agents_to_create]
+        )
+        n_created = created_idxs.size(0)
+        models_to_init = torch.zeros(
+            (n_created, batch_size), dtype=torch.bool
+        )  # (n_created, batch_size)
+        models_to_init = agents_mask[agents_to_create]
+        return models_to_init
 
     def activated(self, X):
         """Get activated agents mask

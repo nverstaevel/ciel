@@ -134,15 +134,10 @@ class BatchHead:
 
         # create new agents
         # TODO: set initial agent size to be the mean of neighbors
-        # TODO: make create_agents return models_to_init
-        # TODO: make create_agents take as argument the whole batch
-        created_mask = self.agents.create_agents(
-            X[agents_to_create], self.R.repeat(X[agents_to_create].size())
+        models_to_init = self.agents.create_agents(
+            X, agents_to_create, self.R.repeat(X.size())
         )
-        n_created = torch.sum(created_mask, dim=-1)
-        models_to_init = torch.zeros((n_created, batch_size), dtype=torch.bool)
         # add models to init to update
-        models_to_init[torch.arange(n_created), torch.where(agents_to_create)[0]] = True
         models_to_update = torch.vstack([models_to_update, models_to_init])
         # update models
         self.agents.update_model(X, y, models_to_update)
