@@ -84,8 +84,10 @@ class BatchHead:
             torch.ones(self.agents.n_agents, dtype=torch.bool)
         )  # (n_agents, 1)
 
-        propositions = self.agents.predict(
-            X, torch.ones(self.agents.n_agents, dtype=torch.bool)
+        propositions = torch.zeros((self.agents.n_agents, batch_size, self.output_dim))
+        agents_to_predict = neighbors.T.sum(-1) > 0
+        propositions[agents_to_predict] = self.agents.predict(
+            X, agents_to_predict
         )  # (n_agents, batch_size, out_dim)
         scores = self.score(propositions, y)  # (n_agents, batch_size)
 
