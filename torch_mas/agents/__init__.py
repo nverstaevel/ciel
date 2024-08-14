@@ -165,3 +165,108 @@ class Agents(ABC):
         self, X: torch.FloatTensor, neighborhood_sides: torch.FloatTensor
     ) -> torch.Any:
         pass
+
+
+# TODO: Give better names to those functions
+batch_update_hypercubes = torch.vmap(batch_update_hypercube, in_dims=(None, 0, None))
+batch_batch_intersect_points = torch.vmap(batch_intersect_point)
+batch_batch_update_hypercube = torch.vmap(batch_update_hypercube, in_dims=(None, 0, 0))
+
+
+class BatchAgents(Agents):
+    def activated(self, X):
+        """Get activated agents mask
+
+        Args:
+            X (Tensor): (batch_size, input_dim)
+
+        Returns:
+            BoolTensor: (batch_size, n_agents)
+        """
+        agents_mask = batch_intersect_points(self.hypercubes, X)
+        return agents_mask
+
+    def neighbors(self, X, side_length):
+        """Get neighbors agents mask
+
+        Args:
+            X (Tensor): (batch_size, input_dim)
+            side_length (Tensor): (n_dim,) | (1,)
+
+        Returns:
+            BoolTensor: (batch_size, n_agents)
+        """
+        neighborhood = batch_create_hypercube(
+            X, torch.vstack([side_length] * X.size(0))
+        )
+        neighbor_mask = batch_intersect_hypercubes(neighborhood, self.hypercubes)
+        return neighbor_mask
+
+    def immediate_expandable(self, X):
+        """Get a mask of agents that can do a one-step expansion to include X
+
+        Args:
+            X (Tensor): (batch_size, input_dim)
+
+        Returns:
+            BoolTensor: (batch_size, n_agents)
+        """
+        expanded_neighbors = batch_update_hypercubes(
+            self.hypercubes,
+            X,
+            torch.full((self.n_agents,), self.alpha),
+        )  # (batch_size, n_agents, in_dim, 2) possible shape of each agent for each x
+        expanded_mask = batch_batch_intersect_points(
+            expanded_neighbors,  # (batch_size*n_agents, in_dim, 2)
+            X,  # (batch_size, in_dim)
+        )  # (batch_size, n_agents)
+        return expanded_mask
+
+    @abstractmethod
+    def create_agents(self, X, agents_to_create, side_lengths):
+        """Create agents
+
+        Args:
+            X (Tensor): (batch_size, n_dim)
+            agents_to_create (BoolTensor): (batch_size,)
+            side_lengths (Tensor): (batch_size, n_dim)
+
+        Returns:
+            BoolTensor: (n_created, batch_size,)
+        """
+        pass
+
+    @abstractmethod
+    def update_model(
+        self,
+        X: torch.Tensor,
+        y: torch.Tensor,
+        agent_mask: torch.BoolTensor,
+    ):
+        """Update the local model of specified agents.
+
+        Args:
+            X (Tensor): (batch_size, input_dim)
+            y (Tensor): (batch_size, output_dim)
+            agent_mask (BoolTensor): (n_agents, batch_size)
+        """
+        pass
+
+    @abstractmethod
+    def update_hypercube(
+        self,
+        X: torch.Tensor,
+        agents_mask: torch.BoolTensor,
+        good: torch.BoolTensor,
+        bad: torch.BoolTensor,
+        no_activated: torch.BoolTensor,
+    ):
+        """Update hypercube of specified agents.
+
+        Args:
+            X (Tensor): (batch_size, input_dim,)
+            agents_mask (BoolTensor): (batch_size, n_agents)
+            good (BoolTensor): (batch_size, n_agents)
+            bad (BoolTensor): (batch_size, n_agents)
+            no_activated (BoolTensor): (batch_size,) True if at least 1 agent activated by X
+        """

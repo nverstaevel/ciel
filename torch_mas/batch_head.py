@@ -3,7 +3,7 @@ import numpy as np
 import tqdm
 
 from torch_mas.agents import Agents
-from torch_mas.batch.agents.batch_agents_linear_reg import BatchLinearAgent
+from torch_mas.agents.batch_agents_linear_reg import BatchLinearAgent
 from torch_mas.hypercubes import *
 from torch_mas.linear_models import *
 

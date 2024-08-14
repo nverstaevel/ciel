@@ -1,4 +1,5 @@
 import torch
+from torch_mas.agents import BatchAgents
 from torch_mas.agents.agents_linear_reg import AgentsLinear
 from torch_mas.linear_models import (
     batch_fit_linear_regression,
@@ -34,7 +35,7 @@ def _update_memory(X, y, mem_X, mem_y, mem_mask, batch_mask):
 _batch_update_memory = torch.vmap(_update_memory, in_dims=(None, None, 0, 0, 0, 0))
 
 
-class BatchLinearAgent(AgentsLinear):
+class BatchLinearAgent(AgentsLinear, BatchAgents):
     def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
         super().__init__(input_dim, output_dim, memory_length, alpha, l1)
 
