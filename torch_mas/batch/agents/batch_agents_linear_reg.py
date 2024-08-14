@@ -11,6 +11,29 @@ batch_batch_intersect_points = torch.vmap(batch_intersect_point)
 batch_batch_update_hypercube = torch.vmap(batch_update_hypercube, in_dims=(None, 0, 0))
 
 
+def _update_memory(X, y, mem_X, mem_y, mem_mask, batch_mask):
+    """_summary_
+
+    Args:
+        X (Tensor): (batch_size, in_dim)
+        y (Tensor): (batch_size, out_dim)
+        mem_X (Tensor): (memory_length, in_dim)
+        mem_y (Tensor): (memory_length, out_dim)
+        mem_mask (Tensor): (memory_length,)
+        agent_mask (Tensor): (batch_size,)
+    """
+    mem_length = mem_X.size(0)
+    cat_masks = torch.cat([batch_mask, mem_mask])
+    new_mem_X = torch.cat([X, mem_X])
+    new_mem_y = torch.cat([y, mem_y])
+    sorted_idxs = torch.argsort(cat_masks, descending=True)
+
+    return new_mem_X[sorted_idxs][:mem_length], new_mem_y[sorted_idxs][:mem_length]
+
+
+_batch_update_memory = torch.vmap(_update_memory, in_dims=(None, None, 0, 0, 0, 0))
+
+
 class BatchLinearAgent(AgentsLinear):
     def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
         super().__init__(input_dim, output_dim, memory_length, alpha, l1)
@@ -143,20 +166,26 @@ class BatchLinearAgent(AgentsLinear):
     def _update_memories(
         self, X: torch.Tensor, y: torch.Tensor, agent_mask: torch.BoolTensor
     ):
+        mem_masks = (
+            torch.arange(self.memory_length) < self.memory_sizes
+        )  # (n_agents, memory_length)
         nb_to_add_per_agent = agent_mask.sum(-1)
-        for agent_id, mask in enumerate(agent_mask):
-            nb_to_add = nb_to_add_per_agent[agent_id]
-            idxs_to_add = (
-                torch.arange(nb_to_add) + self.memory_ptr[agent_id]
-            ) % self.memory_length
-            self.feature_memories[agent_id, idxs_to_add] = X[mask]
-            self.target_memories[agent_id, idxs_to_add] = y[mask]
-
-        self.memory_sizes += torch.where(
-            self.memory_sizes < self.memory_length, nb_to_add_per_agent.view(-1, 1), 0
-        )
-        self.memory_ptr += nb_to_add_per_agent.view(-1, 1)
         agents_to_update = nb_to_add_per_agent > 0
+        self.memory_sizes = torch.clip(
+            self.memory_sizes + nb_to_add_per_agent.view(-1, 1), max=self.memory_length
+        )
+
+        (
+            self.feature_memories[agents_to_update],
+            self.target_memories[agents_to_update],
+        ) = _batch_update_memory(
+            X,
+            y,
+            self.feature_memories[agents_to_update],
+            self.target_memories[agents_to_update],
+            mem_masks[agents_to_update],
+            agent_mask[agents_to_update],
+        )
 
         return agents_to_update
 
@@ -171,7 +200,6 @@ class BatchLinearAgent(AgentsLinear):
             agent_mask (BoolTensor): (n_agents, batch_size)
         """
         # update memory
-        # TODO: vectorize this part of the code to enable fast GPU acceleration
         agents_to_update = self._update_memories(X, y, agent_mask)
 
         # build weights for regression
