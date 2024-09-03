@@ -7,6 +7,7 @@ from torch_mas.hypercubes import *
 
 from . import Agents
 
+
 class AgentsLinear(Agents):
     def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
         super().__init__(input_dim, output_dim, memory_length, alpha, l1)
@@ -38,6 +39,7 @@ class AgentsLinear(Agents):
             (batch_size, self.memory_length, self.output_dim), dtype=torch.float
         )
         memory_size = torch.zeros((batch_size, 1), dtype=torch.long)
+        memory_ptr = torch.zeros((batch_size, 1), dtype=torch.long)
 
         created_idxs = torch.arange(0, batch_size) + self.hypercubes.size(0)
 
@@ -46,6 +48,7 @@ class AgentsLinear(Agents):
         self.feature_memories = torch.vstack([self.feature_memories, feature_memories])
         self.target_memories = torch.vstack([self.target_memories, target_memories])
         self.memory_sizes = torch.vstack([self.memory_sizes, memory_size])
+        self.memory_ptr = torch.vstack([self.memory_ptr, memory_ptr])
         return created_idxs.long()
 
     def destroy_agents(self, idxs):
@@ -61,6 +64,7 @@ class AgentsLinear(Agents):
         self.target_memories = self.target_memories[mask]
         self.models = self.models[mask]
         self.memory_sizes = self.memory_sizes[mask]
+        self.memory_sizes = self.memory_ptr[mask]
 
     def update_model(
         self,
@@ -76,10 +80,13 @@ class AgentsLinear(Agents):
             agents_idxs (LongTensor | BoolTensor): (n_agents,)
         """
         # add X_idx indexes to memories
-        idxs_to_add = (self.memory_sizes[agents_idxs] % self.memory_length).squeeze(-1)
+        idxs_to_add = (self.memory_ptr[agents_idxs] % self.memory_length).squeeze(-1)
         self.feature_memories[agents_idxs, idxs_to_add] = X
         self.target_memories[agents_idxs, idxs_to_add] = y
-        self.memory_sizes[agents_idxs] += 1
+        self.memory_sizes[agents_idxs] += torch.where(
+            self.memory_sizes[agents_idxs] < self.memory_length, 1, 0
+        )
+        self.memory_ptr[agents_idxs] += 1
         # build weights for regression
         weights = (
             torch.arange(self.memory_length) < (self.memory_sizes[agents_idxs])

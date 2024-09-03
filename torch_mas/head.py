@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+
 from torch_mas.agents import Agents
 from torch_mas.hypercubes import *
 from torch_mas.linear_models import *
@@ -54,8 +55,6 @@ class Head:
             l1=self.l1_penalty,
         )
 
-        self._step = 0
-
     def score(self, y_pred: torch.FloatTensor, y: torch.FloatTensor):
         """Calculate the mean squared error
 
@@ -87,7 +86,6 @@ class Head:
             activated_maturity = self.agents.maturity(expanded_idxs).squeeze(-1)
             expanded_idxs = expanded_idxs[activated_maturity]
             n_expand_candidates = len(expanded_idxs)
-
             if n_expand_candidates > 0:
                 predictions = self.agents.predict(X, expanded_idxs)
                 score = self.score(predictions, y).squeeze(-1)  # (n_predictions,)
@@ -134,10 +132,12 @@ class Head:
         idxs = np.arange(0, n_samples)
         np.random.shuffle(idxs)
 
+        self._step = 0
         for _ in range(self.n_epochs):
             for idx in idxs:
                 X, y = dataset[torch.LongTensor([idx])]
                 self.partial_fit(X, y)
+                self._step += 1
 
     def predict(self, X):
         """Make a prediction
