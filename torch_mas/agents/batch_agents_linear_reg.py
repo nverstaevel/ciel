@@ -27,7 +27,7 @@ def _update_memory(X, y, mem_X, mem_y, mem_mask, batch_mask):
     cat_masks = torch.cat([batch_mask, mem_mask])
     new_mem_X = torch.cat([X, mem_X])
     new_mem_y = torch.cat([y, mem_y])
-    sorted_idxs = torch.argsort(cat_masks, descending=True)
+    sorted_idxs = torch.argsort(cat_masks.float(), descending=True)
 
     return new_mem_X[sorted_idxs][:mem_length], new_mem_y[sorted_idxs][:mem_length]
 
@@ -36,8 +36,10 @@ _batch_update_memory = torch.vmap(_update_memory, in_dims=(None, None, 0, 0, 0, 
 
 
 class BatchLinearAgent(AgentsLinear, BatchAgents):
-    def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
-        super().__init__(input_dim, output_dim, memory_length, alpha, l1)
+    def __init__(
+        self, input_dim, output_dim, memory_length, alpha, l1=0.1, device="cpu"
+    ) -> None:
+        super().__init__(input_dim, output_dim, memory_length, alpha, l1, device)
 
     def create_agents(self, X, agents_to_create, side_lengths):
         """Create agents
@@ -121,7 +123,7 @@ class BatchLinearAgent(AgentsLinear, BatchAgents):
         expanded_neighbors = batch_update_hypercubes(
             self.hypercubes,
             X,
-            torch.full((self.n_agents,), self.alpha),
+            torch.full((self.n_agents,), self.alpha, device=self.device),
         )  # (batch_size, n_agents, in_dim, 2) possible shape of each agent for each x
         expanded_mask = batch_batch_intersect_points(
             expanded_neighbors,  # (batch_size*n_agents, in_dim, 2)
@@ -147,7 +149,9 @@ class BatchLinearAgent(AgentsLinear, BatchAgents):
             no_activated (BoolTensor): (batch_size,) True if at least 1 agent activated by X
         """
         batch_size = X.size(0)
-        alphas = torch.zeros((batch_size, self.n_agents))  # (batch_size, n_agents)
+        alphas = torch.zeros(
+            (batch_size, self.n_agents), device=self.device
+        )  # (batch_size, n_agents)
         alphas = torch.where(
             agents_mask & no_activated.view(batch_size, 1) & ~bad, self.alpha, alphas
         )
@@ -168,7 +172,7 @@ class BatchLinearAgent(AgentsLinear, BatchAgents):
         self, X: torch.Tensor, y: torch.Tensor, agent_mask: torch.BoolTensor
     ):
         mem_masks = (
-            torch.arange(self.memory_length) < self.memory_sizes
+            torch.arange(self.memory_length, device=self.device) < self.memory_sizes
         )  # (n_agents, memory_length)
         nb_to_add_per_agent = agent_mask.sum(-1)
         agents_to_update = nb_to_add_per_agent > 0
@@ -205,7 +209,8 @@ class BatchLinearAgent(AgentsLinear, BatchAgents):
 
         # build weights for regression
         weights = (
-            torch.arange(self.memory_length) < (self.memory_sizes[agents_to_update])
+            torch.arange(self.memory_length, device=self.device)
+            < (self.memory_sizes[agents_to_update])
         ).float()
         # extract memories
         X = self.feature_memories[agents_to_update]

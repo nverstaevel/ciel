@@ -22,6 +22,7 @@ class BatchHead:
         n_epochs: int = 10,
         batch_size=64,
         l1=0.0,
+        device="cpu",
     ) -> None:
         """Initialize the learning algorithm.
 
@@ -41,8 +42,8 @@ class BatchHead:
         self.output_dim = output_dim
         if isinstance(R, float):
             R = [R]
-        self.R = torch.FloatTensor(R)
-        self.neighborhood_sides = torch.FloatTensor(self.R)
+        self.R = torch.tensor(R, device=device)
+        self.neighborhood_sides = torch.tensor(self.R, device=device)
         self.imprecise_th = imprecise_th
         self.bad_th = bad_th
         self.alpha = alpha
@@ -57,6 +58,7 @@ class BatchHead:
             self.memory_length,
             self.alpha,
             l1=self.l1_penalty,
+            device=device,
         )
 
     def score(self, y_pred: torch.FloatTensor, y: torch.FloatTensor):
@@ -84,7 +86,10 @@ class BatchHead:
             torch.ones(self.agents.n_agents, dtype=torch.bool)
         )  # (n_agents, 1)
 
-        propositions = torch.zeros((self.agents.n_agents, batch_size, self.output_dim))
+        propositions = torch.zeros(
+            (self.agents.n_agents, batch_size, self.output_dim),
+            device=self.agents.device,
+        )
         agents_to_predict = neighbors.T.sum(-1) > 0
         propositions[agents_to_predict] = self.agents.predict(
             X, agents_to_predict
@@ -95,12 +100,18 @@ class BatchHead:
         bad = scores > self.bad_th  # (n_agents, batch_size)
 
         models_to_update = torch.zeros(
-            (self.agents.n_agents, batch_size), dtype=torch.bool
+            (self.agents.n_agents, batch_size),
+            dtype=torch.bool,
+            device=self.agents.device,
         )  # (n_agents, batch_size) batch points to use to update each agent
         hypercubes_to_update = torch.zeros(
-            (self.agents.n_agents, batch_size), dtype=torch.bool
+            (self.agents.n_agents, batch_size),
+            dtype=torch.bool,
+            device=self.agents.device,
         )  # (n_agents, batch_size)
-        agents_to_create = torch.zeros((batch_size,), dtype=torch.bool)  # (batch_size,)
+        agents_to_create = torch.zeros(
+            (batch_size,), dtype=torch.bool, device=self.agents.device
+        )  # (batch_size,)
 
         # solve incompetence 1
         mask_inc1 = (n_activated == 0) & (n_neighbors == 0)  # (batch_size,)
@@ -137,7 +148,7 @@ class BatchHead:
         # create new agents
         # TODO: set initial agent size to be the mean of neighbors
         models_to_init = self.agents.create_agents(
-            X, agents_to_create, self.R.repeat(X.size())
+            X, agents_to_create, self.R.repeat(X.size(0), 1)
         )
         # add models to init to update
         models_to_update = torch.vstack([models_to_update, models_to_init])

@@ -4,27 +4,30 @@ from abc import ABC, abstractmethod
 
 
 class Agents(ABC):
-    def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
+    def __init__(
+        self, input_dim, output_dim, memory_length, alpha, l1=0.1, device="cpu"
+    ) -> None:
+        self.device = device
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.memory_length = memory_length
-        self.alpha = alpha
+        self.alpha = torch.tensor(alpha, device=self.device)
         self.l1_penalty = l1
 
         self.hypercubes: torch.Tensor = torch.empty(
-            0, input_dim, 2, requires_grad=True
+            0, input_dim, 2, requires_grad=True, device=device
         )  # (n_agents, input_dim, 2) Tensor of hypercubes
         self.feature_memories: torch.Tensor = torch.empty(
-            0, memory_length, input_dim, dtype=torch.float
+            0, memory_length, input_dim, dtype=torch.float, device=device
         )  # (n_agents, memory_length,) Tensor of features
         self.target_memories: torch.Tensor = torch.empty(
-            0, memory_length, output_dim, dtype=torch.float
+            0, memory_length, output_dim, dtype=torch.float, device=device
         )  # (n_agents, memory_length,) Tensor of targets
         self.memory_sizes: torch.Tensor = torch.empty(
-            0, 1, dtype=torch.long
+            0, 1, dtype=torch.long, device=device
         )  # (n_agents, 1) Tensor of fill memory levels
         self.memory_ptr: torch.Tensor = torch.empty(
-            0, 1, dtype=torch.long
+            0, 1, dtype=torch.long, device=device
         )  # (n_agents, 1) Tensor of fill memory levels
 
     @property
