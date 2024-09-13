@@ -50,7 +50,7 @@ def predict_linear_regression(X, parameters):
     """Perform a linear transformation
 
     Args:
-        X (Tensor): (batch_size, output_dim)
+        X (Tensor): (batch_size, input_dim)
         parameters (Tensor): (input_dim + 1, output_dim)
 
     Returns:
@@ -68,7 +68,7 @@ def batch_predict_linear_regression(X, parameters):
     """Perform a linear transformation with a batch of parameters
 
     Args:
-        X (Tensor): (n_parameter_set, batch_size, output_dim)
+        X (Tensor): (n_parameter_set, batch_size, input_dim)
         parameters (Tensor): (n_parameter_set, input_dim + 1, output_dim)
 
     Returns:
