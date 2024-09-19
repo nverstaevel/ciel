@@ -19,9 +19,10 @@ def svm_loss(xx, yy, weight, bias, c):
 
     output = xx @ weight.t() + bias
 
-    tmp = torch.clamp(1 - yy * output, min=0)
-    masked_tensor = torch.where(yy == 0, torch.nan, tmp)
+    hinge_loss = torch.clamp(1 - yy * output, min=0)
+    masked_tensor = torch.where(yy == 0, torch.nan, hinge_loss)
     mean = torch.nanmean(masked_tensor, dim=-1)
+
     loss = torch.where(mean.isnan(), torch.tensor(0.0, device=mean.device), mean)
     loss += c * (weight.t() @ weight) / 2.0
 
@@ -52,10 +53,7 @@ def batch_fit_linear_svm(X, Y, lr=0.1, epoch=10, device='cpu', batchsize=5, c=0.
         for i in range(0, m, batchsize):
             xx = X[:, perm[i : i + batchsize], :] 
             yy = Y[:, perm[i : i + batchsize]]  
-
-            xx = X[:, i : i + batchsize, :] 
-            yy = Y[:, i : i + batchsize]  
-
+            
             grads_w, grads_b = func.vmap(func.grad(svm_loss,argnums=(2,3)), in_dims=(0, 0, 0, 0, None))(*(xx, yy, weights, biases, c))
 
             with torch.no_grad():
