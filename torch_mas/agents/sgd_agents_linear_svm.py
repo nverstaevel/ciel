@@ -105,8 +105,7 @@ class AgentsLSVM(Agents):
         has_different_classes = ((y == -1).any(dim=1) & (y == 1).any(dim=1)).reshape(X.size(0))
 
         # when agents have only 1 class in memory
-        if has_different_classes.sum() == 0:
-            base_prediction[~has_different_classes] = y[~has_different_classes][:,0].squeeze()
+        base_prediction[~has_different_classes] = y[~has_different_classes][:,0].squeeze()
 
         # when agents have all classes in memory
         if has_different_classes.sum() > 0:
