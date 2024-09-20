@@ -18,7 +18,8 @@ class Ciel(BaseEstimator):
         agents:Agents,
         memory_length: int = 20,
         n_epochs: int = 10,
-        l1=0.0,
+        l1 = 0.0,
+        random_seed = None
     ) -> None:
         """Initialize the learning algorithm.
 
@@ -45,6 +46,7 @@ class Ciel(BaseEstimator):
         self.n_epochs = n_epochs
         self.l1 = l1
         self.agents = agents
+        self.random_seed = random_seed
 
         self.estimator = Head(
             self.input_dim,
@@ -57,7 +59,10 @@ class Ciel(BaseEstimator):
             self.memory_length,
             self.n_epochs,
             self.l1,
+            self.random_seed
         )
+
+
 
     def fit(self, X, y):
         return self.estimator.fit(DataBuffer(X, y))

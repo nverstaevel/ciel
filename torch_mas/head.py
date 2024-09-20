@@ -18,7 +18,8 @@ class Head:
         agents: Agents,
         memory_length: int = 20,
         n_epochs: int = 10,
-        l1=0.0,
+        l1 = 0.0,
+        random_seed = None
     ) -> None:
         """Initialize the learning algorithm.
 
@@ -54,6 +55,10 @@ class Head:
             self.alpha,
             l1=self.l1_penalty,
         )
+
+        if random_seed is not None:
+            np.random.seed(random_seed)
+            torch.manual_seed(random_seed)
 
     def score(self, y_pred: torch.FloatTensor, y: torch.FloatTensor):
         """Calculate the mean squared error
