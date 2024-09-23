@@ -143,14 +143,14 @@ class Head:
         np.random.shuffle(idxs)
 
         self._step = 0
-        for _ in range(self.n_epochs):
+        for e in range(self.n_epochs):
             for idx in idxs:
                 X, y = dataset[torch.LongTensor([idx])]
                 self.partial_fit(X, y)
                 self._step += 1
 
             if self.verbose:
-                print(f'Epoch {self._step}: {self.agents.models.size(0)} agents')
+                print(f'Epoch {e}: {self.agents.models.size(0)} agents')
             
 
     def predict(self, X):
