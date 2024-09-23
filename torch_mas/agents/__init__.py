@@ -270,3 +270,4 @@ class BatchAgents(Agents):
             bad (BoolTensor): (batch_size, n_agents)
             no_activated (BoolTensor): (batch_size,) True if at least 1 agent activated by X
         """
+        pass

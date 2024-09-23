@@ -19,7 +19,7 @@ class Head:
         memory_length: int = 20,
         n_epochs: int = 10,
         l1 = 0.0,
-        random_seed = None
+        random_state = None
     ) -> None:
         """Initialize the learning algorithm.
 
@@ -34,6 +34,7 @@ class Head:
             memory_length (int, optional): size of an agent's memory. Defaults to 20.
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
             l1 (float, optional): coefficient of l1 regularization. Defaults to 0.
+            random_state (optional): seed the RNG 
         """
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -47,6 +48,7 @@ class Head:
         self.memory_length = memory_length
         self.n_epochs = n_epochs
         self.l1_penalty = l1
+        self.random_state = random_state
 
         self.agents = agents(
             self.input_dim,
@@ -56,9 +58,9 @@ class Head:
             l1=self.l1_penalty,
         )
 
-        if random_seed is not None:
-            np.random.seed(random_seed)
-            torch.manual_seed(random_seed)
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
+            torch.manual_seed(self.random_state)
 
     def score(self, y_pred: torch.FloatTensor, y: torch.FloatTensor):
         """Calculate the mean squared error
