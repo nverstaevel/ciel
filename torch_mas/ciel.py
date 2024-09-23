@@ -19,7 +19,8 @@ class Ciel(BaseEstimator):
         memory_length: int = 20,
         n_epochs: int = 10,
         l1 = 0.0,
-        random_state = None
+        random_state = None,
+        verbose = False
     ) -> None:
         """Initialize the learning algorithm.
 
@@ -34,6 +35,7 @@ class Ciel(BaseEstimator):
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
             l1 (float, optional): coefficient of l1 regularization. Defaults to 0.
             random_state (optional): seed the RNG 
+            verbose (boolean, optional): verbose option
         """
         self._estimator_type = "regressor"
         self.base_estimator = Head
@@ -48,6 +50,7 @@ class Ciel(BaseEstimator):
         self.l1 = l1
         self.agents = agents
         self.random_state = random_state
+        self.verbose = verbose
 
         self.estimator = Head(
             self.input_dim,
@@ -60,7 +63,8 @@ class Ciel(BaseEstimator):
             self.memory_length,
             self.n_epochs,
             self.l1,
-            self.random_state
+            self.random_state,
+            self.verbose
         )
 
 
