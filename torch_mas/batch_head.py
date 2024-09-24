@@ -37,6 +37,7 @@ class BatchHead:
             memory_length (int, optional): size of an agent's memory. Defaults to 20.
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
             l1 (float, optional): coefficient of l1 regularization. Defaults to 0.
+            device (str, optional): chose device on which calculations are done (cpu or cuda). Default to cpu.
         """
         self.input_dim = input_dim
         self.output_dim = output_dim
