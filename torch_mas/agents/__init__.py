@@ -5,7 +5,13 @@ from abc import ABC, abstractmethod
 
 class Agents(ABC):
     def __init__(
-        self, input_dim, output_dim, memory_length, alpha, l1=0.1, device="cpu"
+        self,
+        input_dim,
+        output_dim,
+        memory_length,
+        alpha,
+        l1=0.1,
+        device="cpu",
     ) -> None:
         self.device = device
         self.input_dim = input_dim

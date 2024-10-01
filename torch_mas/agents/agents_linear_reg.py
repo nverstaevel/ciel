@@ -79,7 +79,7 @@ class AgentsLinear(Agents):
         self.target_memories = self.target_memories[mask]
         self.models = self.models[mask]
         self.memory_sizes = self.memory_sizes[mask]
-        self.memory_sizes = self.memory_ptr[mask]
+        self.memory_ptr = self.memory_ptr[mask]
 
     def update_model(
         self,
