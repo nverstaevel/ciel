@@ -37,7 +37,14 @@ _batch_update_memory = torch.vmap(_update_memory, in_dims=(None, None, 0, 0, 0, 
 
 class BatchLinearAgent(AgentsLinear, BatchAgents):
     def __init__(
-        self, input_dim, output_dim, memory_length, alpha, l1=0.1, device="cpu"
+        self,
+        input_dim,
+        output_dim,
+        memory_length,
+        alpha,
+        l1=0.1,
+        device="cpu",
+        **kwargs
     ) -> None:
         super().__init__(input_dim, output_dim, memory_length, alpha, l1, device)
 
@@ -221,3 +228,66 @@ class BatchLinearAgent(AgentsLinear, BatchAgents):
         )
         # save updated models
         self.models[agents_to_update] = updated_models
+
+
+class BatchLinearAgentSGD(BatchLinearAgent):
+    def __init__(
+        self,
+        input_dim,
+        output_dim,
+        memory_length,
+        alpha,
+        lr=1e-1,
+        n_optim_steps=5,
+        l1=0.1,
+        device="cpu",
+        **kwargs
+    ) -> None:
+        self.lr = lr
+        self.n_optim_steps = n_optim_steps
+        super().__init__(input_dim, output_dim, memory_length, alpha, l1, device)
+
+    def update_model(
+        self, X: torch.Tensor, y: torch.Tensor, agent_mask: torch.BoolTensor
+    ):
+        """Update the local model of specified agents.
+
+        Args:
+            X (Tensor): (batch_size, input_dim)
+            y (Tensor): (batch_size, output_dim)
+            agent_mask (BoolTensor): (n_agents, batch_size)
+        """
+        # update memory
+        agents_to_update = self._update_memories(X, y, agent_mask)
+
+        # build weights for regression
+        weights = (
+            torch.arange(self.memory_length, device=self.device)
+            < (self.memory_sizes[agents_to_update])
+        ).float()
+        # extract memories
+        X = self.feature_memories[agents_to_update]
+        y = self.target_memories[agents_to_update]
+        # update agents
+        self.n_optim_steps = 5
+        self.lr = 1e-1
+        nb_to_add_per_agent = agent_mask.sum(-1)
+        parameters = self.models[agents_to_update].clone().detach()
+        parameters.requires_grad_(True)
+        optimizer = torch.optim.Adam([parameters], lr=self.lr)
+        for _ in range(self.n_optim_steps):
+            optimizer.zero_grad()
+            y_pred = batch_batch_predict_linear_regression(X, parameters)
+            loss = (torch.mean((y_pred - y) ** 2, dim=-1) * weights).sum(
+                dim=-1
+            ) / nb_to_add_per_agent[agents_to_update]
+            loss.sum().backward()
+            optimizer.step()
+
+        # save updated models
+        self.models[agents_to_update] = parameters
+
+
+batch_batch_predict_linear_regression = torch.vmap(
+    batch_predict_linear_regression, in_dims=(0, None)
+)

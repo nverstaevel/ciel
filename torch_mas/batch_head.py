@@ -16,12 +16,11 @@ class BatchHead:
         R: list | float,
         imprecise_th: float,
         bad_th: float,
-        alpha: float,
         agents: Agents,
+        agents_kwargs={},
         memory_length: int = 20,
         n_epochs: int = 10,
         batch_size=64,
-        l1=0.0,
         device="cpu",
     ) -> None:
         """Initialize the learning algorithm.
@@ -32,11 +31,10 @@ class BatchHead:
             R (list | float): size of the sidelengths of a newly created agent. If R is a list then each value should correspond to a dimension of the input vector.
             imprecise_th (float): absolute threshold below which an agent's proposition is considered good.
             bad_th (float): absolute threshold above which an agent's proposition is considered bad.
-            alpha (float): coefficient of expansion or retraction of agents.
             agents (Agents): type of agents. It must heritate of the Agents class.
+            agents_kwargs (dict): parameters of agents.
             memory_length (int, optional): size of an agent's memory. Defaults to 20.
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
-            l1 (float, optional): coefficient of l1 regularization. Defaults to 0.
             device (str, optional): chose device on which calculations are done (cpu or cuda). Default to cpu.
         """
         self.input_dim = input_dim
@@ -47,19 +45,16 @@ class BatchHead:
         self.neighborhood_sides = torch.tensor(self.R, device=device)
         self.imprecise_th = imprecise_th
         self.bad_th = bad_th
-        self.alpha = alpha
         self.memory_length = memory_length
         self.n_epochs = n_epochs
         self.batch_size = batch_size
-        self.l1_penalty = l1
 
         self.agents: BatchLinearAgent = agents(
             self.input_dim,
             self.output_dim,
             self.memory_length,
-            self.alpha,
-            l1=self.l1_penalty,
             device=device,
+            **agents_kwargs
         )
 
     def score(self, y_pred: torch.FloatTensor, y: torch.FloatTensor):
@@ -159,6 +154,7 @@ class BatchHead:
     def fit(self, dataset):
         n_samples = len(dataset)
         self._step = 0
+        self.volume_hist = []
         for _ in range(self.n_epochs):
             indices = torch.arange(n_samples)
             shuffled_indices = indices[torch.randperm(indices.size(0))]
@@ -167,6 +163,12 @@ class BatchHead:
                 X, y = dataset[batch]
                 self.partial_fit(X, y)
                 self._step += 1
+                self.volume_hist += [
+                    torch.sum(batch_volume(self.agents.hypercubes))
+                    .cpu()
+                    .detach()
+                    .item()
+                ]
 
     def predict(self, X):
         """Make a prediction
