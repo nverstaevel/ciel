@@ -28,6 +28,7 @@ def svm_loss(xx, yy, weight, bias, c):
 
     return loss
 
+_batch_grad_svm_loss = func.vmap(func.grad(svm_loss,argnums=(2,3)), in_dims=(0, 0, 0, 0, None))
 
 def batch_fit_linear_svm(X, Y, lr=0.1, epoch=10, device='cpu', batchsize=5, c=0.01):
     """Perform a batch of weighted linear regression
@@ -54,7 +55,8 @@ def batch_fit_linear_svm(X, Y, lr=0.1, epoch=10, device='cpu', batchsize=5, c=0.
             xx = X[:, perm[i : i + batchsize], :] 
             yy = Y[:, perm[i : i + batchsize]]  
             
-            grads_w, grads_b = func.vmap(func.grad(svm_loss,argnums=(2,3)), in_dims=(0, 0, 0, 0, None))(*(xx, yy, weights, biases, c))
+            # TODO peut etre le sortir et déclarer le vmap qu'une seule fois 
+            grads_w, grads_b = _batch_grad_svm_loss(*(xx, yy, weights, biases, c))
 
             with torch.no_grad():
                 weights -= lr * grads_w
