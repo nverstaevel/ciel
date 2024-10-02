@@ -55,7 +55,6 @@ def batch_fit_linear_svm(X, Y, lr=0.1, epoch=10, device='cpu', batchsize=5, c=0.
             xx = X[:, perm[i : i + batchsize], :] 
             yy = Y[:, perm[i : i + batchsize]]  
             
-            # TODO peut etre le sortir et déclarer le vmap qu'une seule fois 
             grads_w, grads_b = _batch_grad_svm_loss(*(xx, yy, weights, biases, c))
 
             with torch.no_grad():
