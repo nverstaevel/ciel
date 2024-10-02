@@ -239,7 +239,7 @@ class BatchLinearAgentSGD(BatchLinearAgent):
     ) -> None:
         self.lr = lr
         self.n_optim_steps = n_optim_steps
-        super().__init__(input_dim, output_dim, memory_length, alpha, l1, device=device)
+        super().__init__(input_dim, output_dim, memory_length, alpha, device=device)
 
     def update_model(
         self, X: torch.Tensor, y: torch.Tensor, agent_mask: torch.BoolTensor

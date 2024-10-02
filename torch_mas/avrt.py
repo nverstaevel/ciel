@@ -65,7 +65,9 @@ def update_hypercube_avrt(hypercube, x, deltas, fb_t, fb_tm1, acoef, dcoef):
     a_mask = (fb_t == fb_tm1) & ((torch.abs(fb_t) + torch.abs(fb_tm1)) == 2)
     coef = torch.where(d_mask, dcoef, coef)
     coef = torch.where(a_mask, acoef, coef)
-    updated_deltas = torch.where(dims_mask, deltas * coef, deltas)
+    updated_deltas = torch.where(
+        torch.stack([dims_mask, dims_mask], dim=1), deltas * coef, deltas
+    )  # (n_dim, 2)
 
     new_low = low - updated_deltas[:, 0] * fb_t
     new_high = high + updated_deltas[:, 1] * fb_t
