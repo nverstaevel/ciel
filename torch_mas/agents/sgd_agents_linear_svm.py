@@ -17,7 +17,7 @@ class AgentsLSVM(Agents):
         )  # (n_agents, input_dim+1, output_dim) Tensor of linear models
 
         self.base_prediction: torch.Tensor = torch.zeros(
-            0, dtype=torch.int, requires_grad=False
+            0, dtype=torch.float, requires_grad=False
         )  # (n_agents) Tensor of base prediction 
 
     def create_agents(self, X, side_lengths):
@@ -36,7 +36,7 @@ class AgentsLSVM(Agents):
 
         hypercubes = torch.stack([lows, highs], dim=-1)
         models = torch.zeros((batch_size, self.input_dim + 1, self.output_dim))
-        base_prediction = torch.zeros((1))
+        base_prediction = torch.zeros((batch_size,))
         feature_memories = torch.zeros(
             (batch_size, self.memory_length, self.input_dim), dtype=torch.float
         )
