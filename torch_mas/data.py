@@ -5,12 +5,12 @@ from torch.utils.data import Dataset
 
 class DataBuffer(Dataset):
     def __init__(
-        self, X: np.ndarray | torch.Tensor, y: np.ndarray | torch.Tensor
+        self, X: np.ndarray | torch.Tensor, y: np.ndarray | torch.Tensor, device="cpu"
     ) -> None:
         self.input_dim = X.shape[-1]
         self.output_dim = y.shape[-1]
-        self.X = torch.Tensor(X)
-        self.y = torch.Tensor(y)
+        self.X = torch.Tensor(X).to(device)
+        self.y = torch.Tensor(y).to(device)
         assert self.X.size(0) == self.y.size(0)
 
     def add(self, X, y):

@@ -13,13 +13,13 @@ def fit_linear_regression(X, y, weights, l1_penalty=0.1):
         Tensor: (input_dim + 1, output_dim)
     """
     num_samples = X.size(0)
-    X_with_bias = torch.cat((X, torch.ones((num_samples, 1))), dim=-1)
+    X_with_bias = torch.cat((X, torch.ones((num_samples, 1), device=X.device)), dim=-1)
     W = torch.diag(weights)
     X_weighted = W @ X_with_bias
     y_weighted = W @ y
     # Concatenate a column of ones to X for the bias term
     # Compute parameters
-    identity_matrix = torch.eye(X_weighted.size(1))
+    identity_matrix = torch.eye(X_weighted.size(1), device=X.device)
     parameters = torch.linalg.lstsq(
         X_weighted.T @ X_weighted + l1_penalty * identity_matrix,
         X_weighted.T @ y_weighted,
@@ -56,7 +56,9 @@ def predict_linear_regression(X, parameters):
     Returns:
         Tensor: (batch_size, output_dim)
     """
-    return torch.cat((X, torch.ones((X.size(0), 1))), dim=-1) @ parameters
+    return (
+        torch.cat((X, torch.ones((X.size(0), 1), device=X.device)), dim=-1) @ parameters
+    )
 
 
 _batch_predict_linear_regression = torch.vmap(

@@ -9,11 +9,18 @@ from . import Agents
 
 
 class AgentsLinear(Agents):
-    def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
-        super().__init__(input_dim, output_dim, memory_length, alpha, l1)
+    def __init__(
+        self, input_dim, output_dim, memory_length, alpha, l1=0.1, device="cpu"
+    ) -> None:
+        super().__init__(input_dim, output_dim, memory_length, alpha, l1, device)
 
         self.models: torch.Tensor = torch.empty(
-            0, input_dim + 1, output_dim, dtype=torch.float, requires_grad=False
+            0,
+            input_dim + 1,
+            output_dim,
+            dtype=torch.float,
+            requires_grad=False,
+            device=device,
         )  # (n_agents, input_dim+1, output_dim) Tensor of linear models
 
     def create_agents(self, X, side_lengths):
@@ -31,15 +38,21 @@ class AgentsLinear(Agents):
         highs = X + side_lengths / 2
 
         hypercubes = torch.stack([lows, highs], dim=-1)
-        models = torch.zeros((batch_size, self.input_dim + 1, self.output_dim))
+        models = torch.zeros(
+            (batch_size, self.input_dim + 1, self.output_dim), device=self.device
+        )
         feature_memories = torch.zeros(
-            (batch_size, self.memory_length, self.input_dim), dtype=torch.float
+            (batch_size, self.memory_length, self.input_dim),
+            dtype=torch.float,
+            device=self.device,
         )
         target_memories = torch.zeros(
-            (batch_size, self.memory_length, self.output_dim), dtype=torch.float
+            (batch_size, self.memory_length, self.output_dim),
+            dtype=torch.float,
+            device=self.device,
         )
-        memory_size = torch.zeros((batch_size, 1), dtype=torch.long)
-        memory_ptr = torch.zeros((batch_size, 1), dtype=torch.long)
+        memory_size = torch.zeros((batch_size, 1), dtype=torch.long, device=self.device)
+        memory_ptr = torch.zeros((batch_size, 1), dtype=torch.long, device=self.device)
 
         created_idxs = torch.arange(0, batch_size) + self.hypercubes.size(0)
 
@@ -57,14 +70,16 @@ class AgentsLinear(Agents):
         Args:
             idxs (LongTensor | BoolTensor): (batch_size,)
         """
-        mask = torch.ones(self.hypercubes.shape[0], dtype=torch.bool)
+        mask = torch.ones(
+            self.hypercubes.shape[0], dtype=torch.bool, device=self.device
+        )
         mask[idxs] = 0
         self.hypercubes = self.hypercubes[mask]
         self.feature_memories = self.feature_memories[mask]
         self.target_memories = self.target_memories[mask]
         self.models = self.models[mask]
         self.memory_sizes = self.memory_sizes[mask]
-        self.memory_sizes = self.memory_ptr[mask]
+        self.memory_ptr = self.memory_ptr[mask]
 
     def update_model(
         self,
@@ -153,7 +168,7 @@ class AgentsLinear(Agents):
         self, X: torch.FloatTensor, neighborhood_sides: torch.FloatTensor
     ) -> torch.Any:
         batch_size = X.size(0)
-        agents_mask = torch.ones(self.n_agents, dtype=torch.bool)
+        agents_mask = torch.ones(self.n_agents, dtype=torch.bool, device=self.device)
         neighborhoods = batch_create_hypercube(
             X,
             neighborhood_sides.expand((batch_size,) + neighborhood_sides.size()),
