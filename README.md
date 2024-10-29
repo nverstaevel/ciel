@@ -11,7 +11,7 @@ CIEL (Contextual Interactive Ensemble Learning) is a multiagent ensemble learnin
 
 ## Installation 💾
 
-Follow the instructions below to install and set up the project:
+To install the dependencies of the project:
 
 ```bash
 pip install -r requirements.txt
@@ -52,6 +52,55 @@ A learning step follows the 5 following steps:
 
 ## Usage
 
-## Future Works
+CIEL library features 2 learning modes:
+
+- **Sequential**: data are fed sequentially one by one to the model during training
+- **Batch**: data points are fed in batches to the model during training
+
+Here is a simple code snippet to run batch learning:
+
+```python
+import time
+from torch_mas.batch_head import BatchHead
+from torch_mas.agents.batch_agents_linear_reg import BatchLinearAgent
+
+...
+
+dataset = DataBuffer(X, y, device=device)
+
+model = BatchHead(
+    dataset.input_dim,
+    dataset.output_dim,
+    R=[0.5, 0.4],
+    imprecise_th=0.01,
+    bad_th=0.1,
+    alpha=0.3,
+    memory_length=10,
+    n_epochs=20,
+    batch_size=256,
+    l1=0.1,
+    agents=BatchLinearAgent,
+    device=device
+)
+
+t = time.time()
+model.fit(dataset)
+tt = time.time() - t
+print(f"Total training time: {tt}s")
+
+print("Number of agents created:", model.agents.n_agents)
+```
+
+A complete learning example is available in the following notebook: `examples/batch_simple_learning.ipynb` (`examples/simple_learning.ipynb` for sequential learning).
+
+## TODO Works
+
+- [x] GPU Batch Training
+- [ ] GPU Sequential Training
+- [ ] Explainability Metrics
+- [ ] Compute SHAPley and LIME values
+- [ ] Refine destruction of agents
+- [ ] Benchmark performances on higher dimensional problems
+- [ ] Multiclass classification
 
 ## References
