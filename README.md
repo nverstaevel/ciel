@@ -36,7 +36,7 @@ A context agent has 2 core components:
 - **Validity Area**: a context agent positions itself in the input variable space in the shape of an [https://en.wikipedia.org/wiki/Hyperrectangle](orthotope) → To know **when** to predict.
 - **Internal Model**: a context agent has an internal model in the form of a simple machine learning model (_linear regression_, _svm_, ...) so it can map the input space to the output space → To know **what** to predict.
 
-![Context Agent Structure](images/context_agent_structure.png)![alt text](image.png)
+![Context Agent Structure](images/context_agent_structure.png)!
 
 ### Learning 🎓
 
