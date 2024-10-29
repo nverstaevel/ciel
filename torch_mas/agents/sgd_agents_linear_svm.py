@@ -1,9 +1,9 @@
 import torch
-from torch_mas.sgd_linear_svm_models import (
+from torch_mas.models.sgd_linear_svm_models import (
     batch_fit_linear_svm,
     batch_predict_linear_svm,
 )
-from torch_mas.hypercubes import *
+from torch_mas.orthotopes.hypercubes import *
 
 from . import Agents
 
