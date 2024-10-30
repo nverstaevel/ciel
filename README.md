@@ -74,12 +74,14 @@ model = BatchHead(
     R=[0.5, 0.4],
     imprecise_th=0.01,
     bad_th=0.1,
-    alpha=0.3,
-    memory_length=10,
     n_epochs=20,
     batch_size=256,
-    l1=0.1,
     agents=BatchLinearAgent,
+    agents_kwargs={
+        "l1": 0.1,
+        "alpha": 0.3,
+        "memory_length": 10
+    },
     device=device
 )
 

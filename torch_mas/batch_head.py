@@ -18,7 +18,6 @@ class BatchHead:
         bad_th: float,
         agents: Agents,
         agents_kwargs={},
-        memory_length: int = 20,
         n_epochs: int = 10,
         batch_size=64,
         device="cpu",
@@ -33,7 +32,6 @@ class BatchHead:
             bad_th (float): absolute threshold above which an agent's proposition is considered bad.
             agents (Agents): type of agents. It must heritate of the Agents class.
             agents_kwargs (dict): parameters of agents.
-            memory_length (int, optional): size of an agent's memory. Defaults to 20.
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
             device (str, optional): chose device on which calculations are done (cpu or cuda). Default to cpu.
         """
@@ -41,20 +39,15 @@ class BatchHead:
         self.output_dim = output_dim
         if isinstance(R, float):
             R = [R]
-        self.R = torch.tensor(R, device=device)
-        self.neighborhood_sides = torch.tensor(self.R, device=device)
+        self.R = torch.as_tensor(R, device=device)
+        self.neighborhood_sides = torch.as_tensor(self.R, device=device)
         self.imprecise_th = imprecise_th
         self.bad_th = bad_th
-        self.memory_length = memory_length
         self.n_epochs = n_epochs
         self.batch_size = batch_size
 
         self.agents: BatchLinearAgent = agents(
-            self.input_dim,
-            self.output_dim,
-            self.memory_length,
-            device=device,
-            **agents_kwargs
+            self.input_dim, self.output_dim, device=device, **agents_kwargs
         )
 
     def score(self, y_pred: torch.FloatTensor, y: torch.FloatTensor):
