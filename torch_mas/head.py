@@ -20,7 +20,8 @@ class Head:
         n_epochs: int = 10,
         l1 = 0.0,
         random_state = None,
-        verbose = False
+        verbose = False,
+        device = "cpu"
     ) -> None:
         """Initialize the learning algorithm.
 
@@ -42,8 +43,8 @@ class Head:
         self.output_dim = output_dim
         if isinstance(R, float):
             R = [R]
-        self.R = torch.FloatTensor(R)
-        self.neighborhood_sides = torch.FloatTensor(self.R)
+        self.R = torch.tensor(R, dtype=torch.float32, device=device)
+        self.neighborhood_sides = torch.as_tensor(self.R, device=device)
         self.imprecise_th = imprecise_th
         self.bad_th = bad_th
         self.alpha = alpha
@@ -52,6 +53,7 @@ class Head:
         self.l1_penalty = l1
         self.random_state = random_state
         self.verbose = verbose
+        self.device = device
 
         self.agents = agents(
             self.input_dim,
@@ -59,6 +61,7 @@ class Head:
             self.memory_length,
             self.alpha,
             l1=self.l1_penalty,
+            device=device
         )
 
         if self.random_state is not None:
@@ -79,18 +82,27 @@ class Head:
 
     def partial_fit(self, X: torch.Tensor, y: torch.Tensor):
         neighborhood_agents = self.agents.neighbors(X, self.neighborhood_sides)
-        n_neighbors = torch.count_nonzero(neighborhood_agents)
-        activated_agents = self.agents.activated(X.squeeze(0))
-        n_activated = torch.count_nonzero(activated_agents)
 
-        agents_to_update = torch.empty(0)
+        if self.device == "mps":
+            n_neighbors = torch.count_nonzero(neighborhood_agents.to('cpu')).to(self.device)
+        else:
+            n_neighbors = torch.count_nonzero(neighborhood_agents)
+
+        activated_agents = self.agents.activated(X.squeeze(0))
+
+        if self.device == "mps":
+            n_activated = torch.count_nonzero(activated_agents.to('cpu')).to(self.device)
+        else:
+            n_activated = torch.count_nonzero(activated_agents)
+        
+        agents_to_update = torch.empty(0,device=self.device)
         if n_activated == 0 and n_neighbors == 0:
             created_idxs = self.agents.create_agents(X, self.R)
             agents_to_update = torch.concat([agents_to_update, created_idxs])
 
         if n_activated == 0 and n_neighbors > 0:
             expanded_mask = self.agents.immediate_expandable(X, neighborhood_agents)
-            expanded_idxs = torch.arange(self.agents.n_agents)[neighborhood_agents][
+            expanded_idxs = torch.arange(self.agents.n_agents, device=self.device)[neighborhood_agents][
                 expanded_mask
             ]
             activated_maturity = self.agents.maturity(expanded_idxs).squeeze(-1)
@@ -106,7 +118,7 @@ class Head:
                     X, expanded_idxs, good, bad, no_activated=True
                 )
 
-                agents_to_update = torch.arange(self.agents.n_agents)[expanded_idxs][
+                agents_to_update = torch.arange(self.agents.n_agents, device=self.device)[expanded_idxs][
                     ~bad & ~good
                 ]
                 if bad.all():
@@ -131,7 +143,7 @@ class Head:
 
             self.agents.update_hypercube(X, agents_mask, good, bad, no_activated=False)
 
-            agents_to_update = torch.arange(self.agents.n_agents)[agents_mask][
+            agents_to_update = torch.arange(self.agents.n_agents, device=self.device)[agents_mask][
                 ~bad & ~good | ~activated_maturity
             ]
         if agents_to_update.size(0) > 0:
