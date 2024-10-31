@@ -1,12 +1,12 @@
 import torch
 from torch_mas.agents import BatchAgents
 from torch_mas.agents.agents_linear_reg import AgentsLinear
-from torch_mas.avrt import batch_init_deltas_avrt, batch_update_hypercube_avrt
-from torch_mas.linear_models import (
+from torch_mas.orthotopes.avrt import batch_init_deltas_avrt, batch_update_hypercube_avrt
+from torch_mas.models.linear_models import (
     batch_fit_linear_regression,
     batch_predict_linear_regression,
 )
-from torch_mas.hypercubes import *
+from torch_mas.orthotopes.hypercubes import *
 
 batch_update_hypercubes = torch.vmap(batch_update_hypercube, in_dims=(None, 0, None))
 batch_batch_intersect_points = torch.vmap(batch_intersect_point)

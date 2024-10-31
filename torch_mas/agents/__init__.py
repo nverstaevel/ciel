@@ -1,5 +1,5 @@
 import torch
-from torch_mas.hypercubes import *
+from torch_mas.orthotopes.hypercubes import *
 from abc import ABC, abstractmethod
 
 

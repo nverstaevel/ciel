@@ -2,8 +2,8 @@ import torch
 import numpy as np
 
 from torch_mas.agents import Agents
-from torch_mas.hypercubes import *
-from torch_mas.linear_models import *
+from torch_mas.orthotopes.hypercubes import *
+from torch_mas.models.linear_models import *
 
 
 class Head:
