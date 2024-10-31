@@ -35,8 +35,8 @@ def _update_memory(X, y, mem_X, mem_y, mem_mask, batch_mask):
 _batch_update_memory = torch.vmap(_update_memory, in_dims=(None, None, 0, 0, 0, 0))
 
 class BatchAgentsLSVM(AgentsLSVM, BatchAgents):
-    def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
-        super().__init__(input_dim, output_dim, memory_length, alpha, l1)
+    def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1, device="cpu", **kwargs) -> None:
+        super().__init__(input_dim, output_dim, memory_length, alpha, l1, device=device)
 
     def create_agents(self, X, agents_to_create, side_lengths):
         """Create agents
@@ -104,7 +104,7 @@ class BatchAgentsLSVM(AgentsLSVM, BatchAgents):
             BoolTensor: (batch_size, n_agents)
         """
         neighborhood = batch_create_hypercube(
-            X, torch.vstack([side_length] * X.size(0))
+            X, torch.vstack([side_length] * X.size(0)),
         )
         neighbor_mask = batch_intersect_hypercubes(neighborhood, self.hypercubes)
         return neighbor_mask
@@ -121,7 +121,7 @@ class BatchAgentsLSVM(AgentsLSVM, BatchAgents):
         expanded_neighbors = batch_update_hypercubes(
             self.hypercubes,
             X,
-            torch.full((self.n_agents,), self.alpha),
+            torch.full((self.n_agents,), self.alpha, device=self.device),
         )  # (batch_size, n_agents, in_dim, 2) possible shape of each agent for each x
         expanded_mask = batch_batch_intersect_points(
             expanded_neighbors,  # (batch_size*n_agents, in_dim, 2)
@@ -147,7 +147,7 @@ class BatchAgentsLSVM(AgentsLSVM, BatchAgents):
             no_activated (BoolTensor): (batch_size,) True if at least 1 agent activated by X
         """
         batch_size = X.size(0)
-        alphas = torch.zeros((batch_size, self.n_agents))  # (batch_size, n_agents)
+        alphas = torch.zeros((batch_size, self.n_agents), device=self.device)  # (batch_size, n_agents)
         alphas = torch.where(
             agents_mask & no_activated.view(batch_size, 1) & ~bad, self.alpha, alphas
         )
@@ -168,7 +168,7 @@ class BatchAgentsLSVM(AgentsLSVM, BatchAgents):
         self, X: torch.Tensor, y: torch.Tensor, agent_mask: torch.BoolTensor
     ):
         mem_masks = (
-            torch.arange(self.memory_length) < self.memory_sizes
+            torch.arange(self.memory_length, device=self.device) < self.memory_sizes
         )  # (n_agents, memory_length)
         nb_to_add_per_agent = agent_mask.sum(-1)
         agents_to_update = nb_to_add_per_agent > 0
@@ -207,8 +207,8 @@ class BatchAgentsLSVM(AgentsLSVM, BatchAgents):
         X = self.feature_memories[agents_to_update]
         y = self.target_memories[agents_to_update]
 
-        base_prediction = torch.zeros((self.base_prediction[agents_to_update].size(0)))
-        models = torch.zeros((self.models[agents_to_update].size(0),X.size(2) + 1,1))
+        base_prediction = torch.zeros((self.base_prediction[agents_to_update].size(0)), device=self.device)
+        models = torch.zeros((self.models[agents_to_update].size(0),X.size(2) + 1,1), device=self.device)
         
         has_different_classes = ((y == -1).any(dim=1) & (y == 1).any(dim=1)).reshape(X.size(0))
 
@@ -222,7 +222,7 @@ class BatchAgentsLSVM(AgentsLSVM, BatchAgents):
 
             # update agents
             updated_models = batch_fit_linear_svm(
-                X_train, y_train,
+                X_train, y_train, device=self.device
             )
 
             models[has_different_classes] = updated_models.unsqueeze(-1)
