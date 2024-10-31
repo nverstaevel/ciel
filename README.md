@@ -25,6 +25,28 @@ pip install git+https://github.com/nverstaevel/ciel.git
 
 ## Repository
 
+The repository is organized as follows:
+
+```
+.
+├── examples/               # Example notebooks demonstrating code recipes
+│   └── <example_notebook>.ipynb    # Notebooks with usage examples and tutorials
+│
+└── torch_mas/              # Core implementation of the multi-agent algorithms
+    ├── agents/             # Implementations of various agent types
+    │   └── <agent_type>.py           # Files for specific types of agents
+    │
+    ├── models/             # Utilities for machine learning models
+    │   └── <model_utilities>.py      # Files for model utility functions, layers, etc.
+    │
+    └── orthotopes/         # Utilities for orthotope (n-dimensional rectangle) manipulation
+        └── <orthotope_utilities>.py  # Files for orthotope operations and utilities
+    │
+    ├── batch_head.py       # Learning trainer implementation in batch setting
+    │
+    └── head.py             # Learning trainer implementation in sequential setting
+```
+
 ## Context Learning
 
 ### Context Agents 🤖
