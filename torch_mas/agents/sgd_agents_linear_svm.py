@@ -9,15 +9,15 @@ from . import Agents
 
 
 class AgentsLSVM(Agents):
-    def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1) -> None:
-        super().__init__(input_dim, output_dim, memory_length, alpha, l1)
+    def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1, device="cpu") -> None:
+        super().__init__(input_dim, output_dim, memory_length, alpha, l1, device)
 
         self.models: torch.Tensor = torch.empty(
-            0, input_dim + 1, output_dim, dtype=torch.float, requires_grad=False
+            0, input_dim + 1, output_dim, dtype=torch.float, requires_grad=False, device=device
         )  # (n_agents, input_dim+1, output_dim) Tensor of linear models
 
         self.base_prediction: torch.Tensor = torch.zeros(
-            0, dtype=torch.float, requires_grad=False
+            0, dtype=torch.float, requires_grad=False, device=device
         )  # (n_agents) Tensor of base prediction 
 
     def create_agents(self, X, side_lengths):
@@ -35,18 +35,18 @@ class AgentsLSVM(Agents):
         highs = X + side_lengths / 2
 
         hypercubes = torch.stack([lows, highs], dim=-1)
-        models = torch.zeros((batch_size, self.input_dim + 1, self.output_dim))
-        base_prediction = torch.zeros((batch_size,))
+        models = torch.zeros((batch_size, self.input_dim + 1, self.output_dim), device=self.device)
+        base_prediction = torch.zeros((batch_size,), device=self.device)
         feature_memories = torch.zeros(
-            (batch_size, self.memory_length, self.input_dim), dtype=torch.float
+            (batch_size, self.memory_length, self.input_dim), dtype=torch.float, device=self.device
         )
         target_memories = torch.zeros(
-            (batch_size, self.memory_length, self.output_dim), dtype=torch.float
+            (batch_size, self.memory_length, self.output_dim), dtype=torch.float, device=self.device
         )
-        memory_size = torch.zeros((batch_size, 1), dtype=torch.long)
-        memory_ptr = torch.zeros((batch_size, 1), dtype=torch.long)
+        memory_size = torch.zeros((batch_size, 1), dtype=torch.long, device=self.device)
+        memory_ptr = torch.zeros((batch_size, 1), dtype=torch.long, device=self.device)
 
-        created_idxs = torch.arange(0, batch_size) + self.hypercubes.size(0)
+        created_idxs = torch.arange(0, batch_size, device=self.device) + self.hypercubes.size(0)
 
         self.hypercubes = torch.vstack([self.hypercubes, hypercubes])
         self.models = torch.vstack([self.models, models])
@@ -63,7 +63,7 @@ class AgentsLSVM(Agents):
         Args:
             idxs (LongTensor | BoolTensor): (batch_size,)
         """
-        mask = torch.ones(self.hypercubes.shape[0], dtype=torch.bool)
+        mask = torch.ones(self.hypercubes.shape[0], dtype=torch.bool, device=self.device)
         mask[idxs] = 0
         self.hypercubes = self.hypercubes[mask]
         self.feature_memories = self.feature_memories[mask]
@@ -99,8 +99,8 @@ class AgentsLSVM(Agents):
         X = self.feature_memories[agents_idxs]
         y = self.target_memories[agents_idxs]
 
-        base_prediction = torch.zeros((self.base_prediction[agents_idxs].size(0)))
-        models = torch.zeros((self.models[agents_idxs].size(0),X.size(2) + 1,1))
+        base_prediction = torch.zeros((self.base_prediction[agents_idxs].size(0)), device=self.device)
+        models = torch.zeros((self.models[agents_idxs].size(0),X.size(2) + 1,1), device=self.device)
         
         has_different_classes = ((y == -1).any(dim=1) & (y == 1).any(dim=1)).reshape(X.size(0))
 
@@ -114,7 +114,7 @@ class AgentsLSVM(Agents):
 
             # update agents
             updated_models = batch_fit_linear_svm(
-                X_train, y_train,
+                X_train, y_train, device=self.device
             )
 
             models[has_different_classes] = updated_models.unsqueeze(-1)
@@ -141,10 +141,10 @@ class AgentsLSVM(Agents):
         """
         n_agents = (
             agents_idxs.size(0)
-            if isinstance(agents_idxs, torch.LongTensor)
+            if agents_idxs.dtype == torch.int64
             else agents_idxs.count_nonzero()
         )
-        alphas = torch.zeros((n_agents, 1))
+        alphas = torch.zeros((n_agents, 1), device=self.device)
         if no_activated:
             alphas[~bad] = self.alpha
         else:
@@ -168,7 +168,7 @@ class AgentsLSVM(Agents):
             Tensor: (n_agents, batch_size, output_dim)
         """
 
-        y_pred = torch.empty((self.models[agents_idxs].size(0),X.size(0),1))
+        y_pred = torch.empty((self.models[agents_idxs].size(0),X.size(0),1),device=self.device)
         mask = self.base_prediction[agents_idxs] == 0
 
         # when agents have only 1 class in memory
@@ -184,9 +184,9 @@ class AgentsLSVM(Agents):
 
     def __call__(
         self, X: torch.FloatTensor, neighborhood_sides: torch.FloatTensor
-    ) -> torch.Any:
+    ):
         batch_size = X.size(0)
-        agents_mask = torch.ones(self.n_agents, dtype=torch.bool)
+        agents_mask = torch.ones(self.n_agents, dtype=torch.bool, device=self.device)
         neighborhoods = batch_create_hypercube(
             X,
             neighborhood_sides.expand((batch_size,) + neighborhood_sides.size()),
@@ -203,6 +203,7 @@ class AgentsLSVM(Agents):
         mask = (neighborhood_mask) & maturity_mask.T
 
         y_hat = self.predict(X, agents_mask).transpose(0, 1).float()
+        
 
         W = mask.float().unsqueeze(-1)
         nan_mask = ~(mask.any(dim=-1))  # check if no agents are selected
@@ -211,6 +212,10 @@ class AgentsLSVM(Agents):
         W = W.squeeze()
 
         y_hat[W == 0] = float('nan')
+        # The operator 'aten::nanmedian.dim_values' is not currently implemented for the MPS device
+        if self.device == "mps":
+            y_hat = y_hat.cpu()
+            
         median_values,_ = y_hat.nanmedian(dim=1)  
 
         return median_values
