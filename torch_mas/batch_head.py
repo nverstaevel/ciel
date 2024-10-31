@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import tqdm
 
 from torch_mas.agents import Agents
 from torch_mas.agents.batch_agents_linear_reg import BatchLinearAgent
