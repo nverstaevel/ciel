@@ -128,3 +128,7 @@ A complete learning example is available in the following notebook: `examples/ba
 - [ ] Multiclass classification
 
 ## References
+
+- _Boes, Jérémy, Julien Nigon, Nicolas Verstaevel, Marie-Pierre Gleizes, and Frédéric Migeon. 2015. “The Self-Adaptive Context Learning Pattern: Overview and Proposal.” In SpringerLink, 91–104. Cham, Switzerland: Springer. https://doi.org/10.1007/978-3-319-25591-0_7._
+- _Verstaevel, Nicolas, Jérémy Boes, Julien Nigon, Dorian D’Amico, and Marie-Pierre Gleizes. 2017. “Lifelong Machine Learning with Adaptive Multi-Agent Systems” 1 (February):275–86. https://doi.org/10.5220/0006247302750286._
+- _Fourez, Thibault, Nicolas Verstaevel, Frédéric Migeon, Frédéric Schettini, and Frederic Amblard. 2022. “An Ensemble Multi-Agent System for Non-Linear Classification.” ArXiv E-Prints, September. https://doi.org/10.48550/arXiv.2209.06824._
