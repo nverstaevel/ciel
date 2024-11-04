@@ -82,19 +82,9 @@ class Head:
 
     def partial_fit(self, X: torch.Tensor, y: torch.Tensor):
         neighborhood_agents = self.agents.neighbors(X, self.neighborhood_sides)
-
-        if self.device == "mps":
-            n_neighbors = torch.count_nonzero(neighborhood_agents.to('cpu')).to(self.device)
-        else:
-            n_neighbors = torch.count_nonzero(neighborhood_agents)
-
+        n_neighbors = torch.count_nonzero(neighborhood_agents)
         activated_agents = self.agents.activated(X.squeeze(0))
-
-        if self.device == "mps":
-            n_activated = torch.count_nonzero(activated_agents.to('cpu')).to(self.device)
-        else:
-            n_activated = torch.count_nonzero(activated_agents)
-        
+        n_activated = torch.count_nonzero(activated_agents)
         agents_to_update = torch.empty(0,device=self.device)
         if n_activated == 0 and n_neighbors == 0:
             created_idxs = self.agents.create_agents(X, self.R)
