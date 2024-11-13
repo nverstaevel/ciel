@@ -28,7 +28,7 @@ def _update_memory(X, y, mem_X, mem_y, mem_mask, batch_mask):
     cat_masks = torch.cat([batch_mask, mem_mask])
     new_mem_X = torch.cat([X, mem_X])
     new_mem_y = torch.cat([y, mem_y])
-    sorted_idxs = torch.argsort(cat_masks, descending=True)
+    sorted_idxs = torch.argsort(cat_masks.float(), descending=True)
 
     return new_mem_X[sorted_idxs][:mem_length], new_mem_y[sorted_idxs][:mem_length]
 
