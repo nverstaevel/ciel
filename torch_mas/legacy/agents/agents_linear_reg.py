@@ -1,9 +1,9 @@
 import torch
-from torch_mas.models.linear_models import (
+from ..models.linear_models import (
     batch_fit_linear_regression,
     batch_predict_linear_regression,
 )
-from torch_mas.orthotopes.hypercubes import *
+from ..orthotopes.hypercubes import *
 
 from . import Agents
 
