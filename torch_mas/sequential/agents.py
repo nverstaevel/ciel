@@ -1,7 +1,7 @@
 import torch
 
 from typing import Callable
-from .validity import ValidityInterface
+from .activation_function import ValidityInterface
 from .internal_model import InternalModelInterface
 from ..common.orthotopes.base import batch_sides
 
