@@ -105,6 +105,12 @@ class AgentsTrainer:
         models_to_init = agents_mask[agents_to_create]
         return models_to_init
 
+    def feedbacks(self, propositions, scores):
+        good = scores <= self.imprecise_th  # (n_agents, batch_size)
+        bad = scores > self.bad_th  # (n_agents, batch_size)
+
+        return good, bad
+
     def partial_fit(self, X: torch.Tensor, y: torch.Tensor):
         batch_size = X.size(0)
 
@@ -129,22 +135,21 @@ class AgentsTrainer:
         propositions[agents_to_predict] = predictions
         scores = self.criterion(propositions, y)  # (n_agents, batch_size)
 
-        good = scores <= self.imprecise_th  # (n_agents, batch_size)
-        bad = scores > self.bad_th  # (n_agents, batch_size)
+        good, bad = self.feedbacks(propositions, scores)
 
-        models_to_update = torch.zeros(
-            (self.n_agents, batch_size),
-            dtype=torch.bool,
-            device=self.device,
-        )  # (n_agents, batch_size) batch points to use to update each agent
+        agents_to_create = torch.zeros(
+            (batch_size,), dtype=torch.bool, device=self.device
+        )  # (batch_size,)
         hypercubes_to_update = torch.zeros(
             (self.n_agents, batch_size),
             dtype=torch.bool,
             device=self.device,
         )  # (n_agents, batch_size)
-        agents_to_create = torch.zeros(
-            (batch_size,), dtype=torch.bool, device=self.device
-        )  # (batch_size,)
+        models_to_update = torch.zeros(
+            (self.n_agents, batch_size),
+            dtype=torch.bool,
+            device=self.device,
+        )  # (n_agents, batch_size) batch points to use to update each agent
 
         for learning_rule in self.learning_rules:
             _agents_to_create, _activation_to_update, _models_to_update = learning_rule(
