@@ -4,6 +4,12 @@ from typing import Callable
 from .activation_function import ValidityInterface
 from .internal_model import InternalModelInterface
 from ..common.orthotopes.base import batch_intersect_points
+from .learning_rules import (
+    LearningRule,
+    IfActivated,
+    IfNoActivated,
+    IfNoActivatedAndNoNeighbors,
+)
 
 
 def mse_loss(y_pred: torch.FloatTensor, y: torch.FloatTensor):
@@ -27,6 +33,11 @@ class AgentsTrainer:
         R: list | float,
         imprecise_th: float,
         bad_th: float,
+        learning_rules: list[LearningRule] = [
+            IfNoActivatedAndNoNeighbors(),
+            IfNoActivated(),
+            IfActivated(),
+        ],
         criterion: Callable = mse_loss,
         n_epochs: int = 10,
         batch_size: int = 64,
@@ -34,6 +45,7 @@ class AgentsTrainer:
     ):
         self.validity = validity
         self.internal_model = internal_model
+        self.learning_rules = learning_rules
         self.criterion = criterion
 
         if isinstance(R, float):
@@ -134,34 +146,26 @@ class AgentsTrainer:
             (batch_size,), dtype=torch.bool, device=self.device
         )  # (batch_size,)
 
-        # solve incompetence 1
-        mask_inc1 = (n_activated == 0) & (n_neighbors == 0)  # (batch_size,)
-        agents_to_create |= mask_inc1  # which points to use to create new agents
+        for learning_rule in self.learning_rules:
+            _agents_to_create, _activation_to_update, _models_to_update = learning_rule(
+                X,
+                self.validity,
+                self.internal_model,
+                good,
+                bad,
+                activated,
+                neighbors,
+                n_activated,
+                n_neighbors,
+                maturity,
+            )
+            agents_to_create |= _agents_to_create
+            hypercubes_to_update |= _activation_to_update
+            models_to_update |= _models_to_update
 
         if self.n_agents > 0:
-            # solve incompetence 2
-            mask_inc2 = (n_activated == 0) & (n_neighbors > 0)  # (batch_size,)
-            immediate_expandables = self.validity.immediate_expandable(
-                X
-            )  # (batch_size, n_agents)
-            expand_candidates = (
-                immediate_expandables & maturity.T
-            )  # (batch_size, n_agents)
-            n_expand_candidates = torch.sum(expand_candidates, dim=-1)  # (batch_size,)
-
-            hypercubes_to_update |= mask_inc2 & expand_candidates.T
-            models_to_update |= mask_inc2 & (
-                (n_expand_candidates > 0) & expand_candidates.T
-            )
-            agents_to_create |= mask_inc2 & (n_expand_candidates == 0)
-
-            # solve inaccuracy
-            mask_inac = n_activated > 0
-            hypercubes_to_update |= mask_inac & activated.T
-            models_to_update |= activated.T & (mask_inac & (~bad & ~good) | (~maturity))
-
-            # update hypercubes
-            no_activated = mask_inc2 & (~mask_inac)
+            # update orthotopes
+            no_activated = (n_activated == 0) & (n_neighbors > 0)
             self.validity.update(X, hypercubes_to_update.T, good.T, bad.T, no_activated)
 
         # create new agents
