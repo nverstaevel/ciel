@@ -105,7 +105,18 @@ class AgentsTrainer:
         models_to_init = agents_mask[agents_to_create]
         return models_to_init
 
-    def feedbacks(self, propositions, scores):
+    def feedbacks(self, propositions, scores, neighbors, n_neighbors):
+        """_summary_
+
+        Args:
+            propositions (Tensor): (n_agents, batch_size, output_dim)
+            scores (Tensor): (n_agents, batch_size)
+            neighbors (Tensor): (n_agents, batch_size)
+            n_neighbors (Tensor): (batch_size,)
+
+        Returns:
+            tuple[Tensor, Tensor]: good (n_agents, batch_size), bad (n_agents, batch_size)
+        """
         good = scores <= self.imprecise_th  # (n_agents, batch_size)
         bad = scores > self.bad_th  # (n_agents, batch_size)
 
@@ -135,7 +146,7 @@ class AgentsTrainer:
         propositions[agents_to_predict] = predictions
         scores = self.criterion(propositions, y)  # (n_agents, batch_size)
 
-        good, bad = self.feedbacks(propositions, scores)
+        good, bad = self.feedbacks(propositions, scores, neighbors.T, n_neighbors)
 
         agents_to_create = torch.zeros(
             (batch_size,), dtype=torch.bool, device=self.device
@@ -175,9 +186,8 @@ class AgentsTrainer:
 
         # create new agents
         # TODO: set initial agent size to be the mean of neighbors
-        models_to_init = self.create_agents(
-            X, agents_to_create, self.R.repeat(X.size(0), 1)
-        )
+        radius = self.R.repeat(X.size(0), 1)
+        models_to_init = self.create_agents(X, agents_to_create, radius)
         # add models to init to update
         models_to_update = torch.vstack([models_to_update, models_to_init])
         # update models
