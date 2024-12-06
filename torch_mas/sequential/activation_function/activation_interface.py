@@ -92,3 +92,8 @@ class ActivationInterface(ABC):
             FloatTensor: (batch_size, n_agents)
         """
         raise NotImplementedError()
+
+    @abstractmethod
+    def clone(self):
+        """Generates a deepcopy of the current state of the activation function."""
+        raise NotImplementedError()

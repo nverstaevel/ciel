@@ -22,7 +22,7 @@ def mse_loss(y_pred: torch.FloatTensor, y: torch.FloatTensor):
 class AgentsTrainer:
     def __init__(
         self,
-        validity: ActivationInterface,
+        activation: ActivationInterface,
         internal_model: InternalModelInterface,
         R: list | float,
         imprecise_th: float,
@@ -31,7 +31,7 @@ class AgentsTrainer:
         n_epochs: int = 10,
         device="cpu",
     ):
-        self.validity = validity
+        self.activation = activation
         self.internal_model = internal_model
         self.criterion = criterion
 
@@ -46,7 +46,7 @@ class AgentsTrainer:
 
     @property
     def n_agents(self):
-        return self.validity.n_agents
+        return self.activation.n_agents
 
     def create_agents(self, X, side_lengths):
         """Create agents
@@ -59,15 +59,15 @@ class AgentsTrainer:
             BoolTensor: (n_created, batch_size,)
         """
         created_idxs = torch.arange(0, X.size(0), dtype=torch.long) + self.n_agents
-        self.validity.create(X, side_lengths)
+        self.activation.create(X, side_lengths)
         self.internal_model.create(X)
 
         return created_idxs
 
     def partial_fit(self, X: torch.Tensor, y: torch.Tensor):
-        neighborhood_agents = self.validity.neighbors(X, self.neighborhood_sides)
+        neighborhood_agents = self.activation.neighbors(X, self.neighborhood_sides)
         n_neighbors = torch.count_nonzero(neighborhood_agents)
-        activated_agents = self.validity.activated(X.squeeze(0))
+        activated_agents = self.activation.activated(X.squeeze(0))
         n_activated = torch.count_nonzero(activated_agents)
         agents_to_update = torch.empty(0, device=self.device)
         if n_activated == 0 and n_neighbors == 0:
@@ -75,7 +75,7 @@ class AgentsTrainer:
             agents_to_update = torch.concat([agents_to_update, created_idxs])
 
         if n_activated == 0 and n_neighbors > 0:
-            expanded_mask = self.validity.immediate_expandable(X, neighborhood_agents)
+            expanded_mask = self.activation.immediate_expandable(X, neighborhood_agents)
             expanded_idxs = torch.arange(self.n_agents, device=self.device)[
                 neighborhood_agents
             ][expanded_mask]
@@ -88,7 +88,7 @@ class AgentsTrainer:
                 good = score <= self.imprecise_th
                 bad = score > self.bad_th
 
-                self.validity.update(X, expanded_idxs, good, bad, no_activated=True)
+                self.activation.update(X, expanded_idxs, good, bad, no_activated=True)
 
                 agents_to_update = torch.arange(self.n_agents, device=self.device)[
                     expanded_idxs
@@ -100,7 +100,7 @@ class AgentsTrainer:
                 radius = self.R
                 if n_neighbors > 1:
                     radius = batch_sides(
-                        self.validity.orthotopes[neighborhood_agents]
+                        self.activation.orthotopes[neighborhood_agents]
                     ).mean(0)
                 created_idxs = self.create_agents(X, radius)
                 agents_to_update = torch.concat([agents_to_update, created_idxs])
@@ -113,7 +113,7 @@ class AgentsTrainer:
             good = score <= self.imprecise_th
             bad = score > self.bad_th
 
-            self.validity.update(X, agents_mask, good, bad, no_activated=False)
+            self.activation.update(X, agents_mask, good, bad, no_activated=False)
 
             agents_to_update = torch.arange(self.n_agents, device=self.device)[
                 agents_mask
@@ -142,9 +142,9 @@ class AgentsTrainer:
         """
         batch_size = X.size(0)
         agents_mask = torch.ones(self.n_agents, dtype=torch.bool, device=self.device)
-        neighbor_mask = self.validity.neighbors(X, self.neighborhood_sides)
+        neighbor_mask = self.activation.neighbors(X, self.neighborhood_sides)
         maturity_mask = self.internal_model.maturity(agents_mask)
-        distances = self.validity.dist_to_border(X, agents_mask)
+        distances = self.activation.dist_to_border(X, agents_mask)
         closest_mask = (
             torch.zeros_like(distances, dtype=torch.bool)
             .scatter(1, distances.argsort()[:, :3], True)

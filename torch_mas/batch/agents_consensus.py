@@ -55,7 +55,7 @@ def weighted_std(x, weights, dim):
 class ConsensusAgentsTrainer(AgentsTrainer):
     def __init__(
         self,
-        validity: ActivationInterface,
+        activation: ActivationInterface,
         internal_model: InternalModelInterface,
         R: list | float,
         outlier_factor: float,
@@ -69,7 +69,7 @@ class ConsensusAgentsTrainer(AgentsTrainer):
         batch_size: int = 64,
         device="cpu",
     ):
-        self.validity = validity
+        self.activation = activation
         self.internal_model = internal_model
         self.learning_rules = learning_rules
         self.criterion = criterion

@@ -1,4 +1,5 @@
 import torch
+import copy
 from .model_interface import InternalModelInterface
 from ...common.models.linear_models import (
     batch_fit_linear_regression,
@@ -91,3 +92,10 @@ class LinearWithMemory(InternalModelInterface):
 
     def __call__(self, X, agents_mask=None):
         return batch_predict_linear_regression(X, self.models[agents_mask])
+
+    def clone(self):
+        cloned_self = copy.copy(self)  # shallow copy
+        for attr_name, attr_value in self.__dict__.items():
+            if isinstance(attr_value, torch.Tensor):
+                setattr(cloned_self, attr_name, attr_value.clone())
+        return cloned_self

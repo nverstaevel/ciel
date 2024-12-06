@@ -52,3 +52,8 @@ class InternalModelInterface(ABC):
             Tensor: (n_agents, batch_size, output_dim)
         """
         raise NotImplementedError()
+
+    @abstractmethod
+    def clone(self):
+        """Generates a deepcopy of the current state of the activation function."""
+        raise NotImplementedError()

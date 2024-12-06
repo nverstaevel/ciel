@@ -1,4 +1,5 @@
 import torch
+import copy
 from .activation_interface import ActivationInterface
 from ...common.orthotopes.base import (
     batch_create_hypercube,
@@ -81,3 +82,10 @@ class BaseActivation(ActivationInterface):
 
     def dist_to_border(self, X, agents_mask):
         return batch_dist_points_to_border(self.orthotopes[agents_mask], X)
+
+    def clone(self):
+        cloned_self = copy.copy(self)  # shallow copy
+        for attr_name, attr_value in self.__dict__.items():
+            if isinstance(attr_value, torch.Tensor):
+                setattr(cloned_self, attr_name, attr_value.clone())
+        return cloned_self

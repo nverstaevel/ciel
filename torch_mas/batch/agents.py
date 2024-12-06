@@ -28,7 +28,7 @@ def mse_loss(y_pred: torch.FloatTensor, y: torch.FloatTensor):
 class AgentsTrainer:
     def __init__(
         self,
-        validity: ActivationInterface,
+        activation: ActivationInterface,
         internal_model: InternalModelInterface,
         R: list | float,
         imprecise_th: float,
@@ -43,7 +43,7 @@ class AgentsTrainer:
         batch_size: int = 64,
         device="cpu",
     ):
-        self.validity = validity
+        self.activation = activation
         self.internal_model = internal_model
         self.learning_rules = learning_rules
         self.criterion = criterion
@@ -60,7 +60,7 @@ class AgentsTrainer:
 
     @property
     def n_agents(self):
-        return self.validity.n_agents
+        return self.activation.n_agents
 
     def create_agents(self, X, agents_to_create, side_lengths):
         """Create agents
@@ -96,7 +96,7 @@ class AgentsTrainer:
         agents_to_create = selected_mask
         n_created = agents_to_create.sum()
 
-        self.validity.create(X[agents_to_create], side_lengths[agents_to_create])
+        self.activation.create(X[agents_to_create], side_lengths[agents_to_create])
         self.internal_model.create(X[agents_to_create])
 
         models_to_init = torch.zeros(
@@ -125,11 +125,11 @@ class AgentsTrainer:
     def partial_fit(self, X: torch.Tensor, y: torch.Tensor):
         batch_size = X.size(0)
 
-        neighbors = self.validity.neighbors(
+        neighbors = self.activation.neighbors(
             X, self.neighborhood_sides
         )  # (batch_size, n_agents)
         n_neighbors = torch.count_nonzero(neighbors, dim=-1)  # (batch_size,)
-        activated = self.validity.activated(X)  # (batch_size, n_agents)
+        activated = self.activation.activated(X)  # (batch_size, n_agents)
         n_activated = torch.count_nonzero(activated, dim=-1)  # (batch_size,)
         maturity = self.internal_model.maturity(
             torch.ones(self.n_agents, dtype=torch.bool)
@@ -165,7 +165,7 @@ class AgentsTrainer:
         for learning_rule in self.learning_rules:
             _agents_to_create, _activation_to_update, _models_to_update = learning_rule(
                 X,
-                self.validity,
+                self.activation,
                 self.internal_model,
                 good,
                 bad,
@@ -182,7 +182,9 @@ class AgentsTrainer:
         if self.n_agents > 0:
             # update orthotopes
             no_activated = (n_activated == 0) & (n_neighbors > 0)
-            self.validity.update(X, hypercubes_to_update.T, good.T, bad.T, no_activated)
+            self.activation.update(
+                X, hypercubes_to_update.T, good.T, bad.T, no_activated
+            )
 
         # create new agents
         # TODO: set initial agent size to be the mean of neighbors
@@ -214,9 +216,9 @@ class AgentsTrainer:
         """
         batch_size = X.size(0)
         agents_mask = torch.ones(self.n_agents, dtype=torch.bool, device=self.device)
-        neighbor_mask = self.validity.neighbors(X, self.neighborhood_sides)
+        neighbor_mask = self.activation.neighbors(X, self.neighborhood_sides)
         maturity_mask = self.internal_model.maturity(agents_mask)
-        distances = self.validity.dist_to_border(X, agents_mask)
+        distances = self.activation.dist_to_border(X, agents_mask)
         closest_mask = (
             torch.zeros_like(distances, dtype=torch.bool)
             .scatter(1, distances.argsort()[:, :3], True)
