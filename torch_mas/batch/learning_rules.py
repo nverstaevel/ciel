@@ -38,12 +38,18 @@ class IfNoActivatedAndNoNeighbors(LearningRule):
         maturity,
     ):
         batch_size = X.size(0)
+        device = X.device
+
         n_agents = validity.n_agents
         # solve incompetence 1
         mask_inc1 = (n_activated == 0) & (n_neighbors == 0)  # (batch_size,)
         agents_to_create = mask_inc1  # which points to use to create new agents
-        activation_to_update = torch.zeros((n_agents, batch_size), dtype=torch.bool)
-        models_to_update = torch.zeros((n_agents, batch_size), dtype=torch.bool)
+        activation_to_update = torch.zeros(
+            (n_agents, batch_size), dtype=torch.bool, device=device
+        )
+        models_to_update = torch.zeros(
+            (n_agents, batch_size), dtype=torch.bool, device=device
+        )
         return (
             agents_to_create,
             activation_to_update,
@@ -66,6 +72,8 @@ class IfNoActivated(LearningRule):
         maturity,
     ):
         batch_size = X.size(0)
+        device = X.device
+
         n_agents = validity.n_agents
         # solve incompetence 2
         mask_inc2 = (n_activated == 0) & (n_neighbors > 0)  # (batch_size,)
@@ -89,9 +97,9 @@ class IfNoActivated(LearningRule):
                 models_to_update,
             )
         return (
-            torch.zeros(batch_size, dtype=torch.bool),
-            torch.zeros((n_agents, batch_size), dtype=torch.bool),
-            torch.zeros((n_agents, batch_size), dtype=torch.bool),
+            torch.zeros(batch_size, dtype=torch.bool, device=device),
+            torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
+            torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
         )
 
 
@@ -110,13 +118,15 @@ class IfActivated(LearningRule):
         maturity,
     ):
         batch_size = X.size(0)
+        device = X.device
+
         n_agents = validity.n_agents
         # solve inaccuracy
         mask_inac = n_activated > 0
         if validity.n_agents > 0:
             activation_to_update = mask_inac & activated.T
             models_to_update = activated.T & (mask_inac & (~bad & ~good) | (~maturity))
-            agents_to_create = torch.zeros(batch_size, dtype=torch.bool)
+            agents_to_create = torch.zeros(batch_size, dtype=torch.bool, device=device)
 
             return (
                 agents_to_create,
@@ -124,7 +134,7 @@ class IfActivated(LearningRule):
                 models_to_update,
             )
         return (
-            torch.zeros(batch_size, dtype=torch.bool),
-            torch.zeros((n_agents, batch_size), dtype=torch.bool),
-            torch.zeros((n_agents, batch_size), dtype=torch.bool),
+            torch.zeros(batch_size, dtype=torch.bool, device=device),
+            torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
+            torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
         )

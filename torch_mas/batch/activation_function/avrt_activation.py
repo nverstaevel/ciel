@@ -93,7 +93,7 @@ class AVRTActivation(BaseActivation):
             self.orthotopes,
             X,
             self.deltas,
-            torch.ones((self.n_agents, 1)),
+            torch.ones((self.n_agents, 1), device=X.device),
             self.previous_fb,
             self.acoef,
             self.dcoef,
