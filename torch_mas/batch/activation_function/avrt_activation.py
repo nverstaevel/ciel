@@ -1,6 +1,6 @@
 import torch
 
-from . import BaseValidity
+from . import BaseActivation
 from ...common.orthotopes.avrt import (
     batch_init_deltas_avrt,
     batch_update_hypercube_avrt,
@@ -19,7 +19,7 @@ batch_update_hypercubes_avrt = torch.vmap(
 batch_batch_intersect_points = torch.vmap(batch_intersect_point)
 
 
-class AVRTValidity(BaseValidity):
+class AVRTActivation(BaseActivation):
     def __init__(
         self,
         input_dim,

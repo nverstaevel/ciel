@@ -2,7 +2,7 @@ import torch
 from abc import ABC, abstractmethod
 
 
-class ValidityInterface(ABC):
+class ActivationInterface(ABC):
     @property
     @abstractmethod
     def n_agents(self):

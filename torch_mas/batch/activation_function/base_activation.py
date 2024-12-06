@@ -1,5 +1,5 @@
 import torch
-from .validity_interface import ValidityInterface
+from .activation_interface import ActivationInterface
 from ...common.orthotopes.base import (
     batch_intersect_points,
     batch_intersect_point,
@@ -14,7 +14,7 @@ batch_batch_intersect_points = torch.vmap(batch_intersect_point)
 batch_batch_update_hypercube = torch.vmap(batch_update_hypercube, in_dims=(None, 0, 0))
 
 
-class BaseValidity(ValidityInterface):
+class BaseActivation(ActivationInterface):
     def __init__(self, input_dim, output_dim, alpha, device="cpu", **kwargs):
         self.device = device
         self.input_dim = input_dim

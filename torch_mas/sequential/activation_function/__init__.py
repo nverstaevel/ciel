@@ -1,4 +1,4 @@
-from .validity_interface import ValidityInterface
-from .base_validity import BaseValidity
+from .activation_interface import ActivationInterface
+from .base_activation import BaseActivation
 
-__all__ = ["ValidityInterface", "BaseValidity"]
+__all__ = ["ActivationInterface", "BaseActivation"]

@@ -1,7 +1,7 @@
 import torch
 
 from typing import Callable
-from .activation_function import ValidityInterface
+from .activation_function import ActivationInterface
 from .internal_model import InternalModelInterface
 from ..common.orthotopes.base import batch_intersect_points
 from .learning_rules import (
@@ -28,7 +28,7 @@ def mse_loss(y_pred: torch.FloatTensor, y: torch.FloatTensor):
 class AgentsTrainer:
     def __init__(
         self,
-        validity: ValidityInterface,
+        validity: ActivationInterface,
         internal_model: InternalModelInterface,
         R: list | float,
         imprecise_th: float,

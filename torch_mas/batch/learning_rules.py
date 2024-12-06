@@ -1,7 +1,7 @@
 import torch
 
 from abc import ABC, abstractmethod
-from .activation_function import ValidityInterface
+from .activation_function import ActivationInterface
 from .internal_model import InternalModelInterface
 
 
@@ -10,7 +10,7 @@ class LearningRule(ABC):
     def __call__(
         self,
         X: torch.Tensor,
-        validity: ValidityInterface,
+        validity: ActivationInterface,
         internal_model: InternalModelInterface,
         good: torch.Tensor,
         bad: torch.Tensor,

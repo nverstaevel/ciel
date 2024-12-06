@@ -1,7 +1,7 @@
 import torch
 
 from typing import Callable
-from .activation_function import ValidityInterface
+from .activation_function import ActivationInterface
 from .internal_model import InternalModelInterface
 from ..common.orthotopes.base import batch_intersect_points
 from .learning_rules import (
@@ -55,7 +55,7 @@ def weighted_std(x, weights, dim):
 class ConsensusAgentsTrainer(AgentsTrainer):
     def __init__(
         self,
-        validity: ValidityInterface,
+        validity: ActivationInterface,
         internal_model: InternalModelInterface,
         R: list | float,
         outlier_factor: float,
