@@ -1,9 +1,9 @@
 import torch
 
 from typing import Callable
-from .activation_function import ActivationInterface
-from .internal_model import InternalModelInterface
-from ..common.orthotopes.base import batch_sides
+from ..activation_function import ActivationInterface
+from ..internal_model import InternalModelInterface
+from ...common.orthotopes.base import batch_sides
 
 
 def mse_loss(y_pred: torch.FloatTensor, y: torch.FloatTensor):
@@ -19,7 +19,7 @@ def mse_loss(y_pred: torch.FloatTensor, y: torch.FloatTensor):
     return ((y_pred - y) ** 2).mean(dim=-1)
 
 
-class AgentsTrainer:
+class BaseTrainer:
     def __init__(
         self,
         activation: ActivationInterface,

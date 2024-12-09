@@ -1,16 +1,16 @@
 import torch
 
 from typing import Callable
-from .activation_function import ActivationInterface
-from .internal_model import InternalModelInterface
-from ..common.orthotopes.base import batch_intersect_points
+from ..activation_function import ActivationInterface
+from ..internal_model import InternalModelInterface
+from ...common.orthotopes.base import batch_intersect_points
 from .learning_rules import (
     LearningRule,
     IfActivated,
     IfNoActivated,
     IfNoActivatedAndNoNeighbors,
 )
-from .agents import AgentsTrainer
+from .base_trainer import AgentsTrainer
 
 
 def mse_loss(y_pred: torch.FloatTensor, y: torch.FloatTensor):
@@ -52,7 +52,7 @@ def weighted_std(x, weights, dim):
     return torch.sqrt(variance)
 
 
-class ConsensusAgentsTrainer(AgentsTrainer):
+class ConsensusTrainer(AgentsTrainer):
     def __init__(
         self,
         activation: ActivationInterface,
@@ -87,18 +87,16 @@ class ConsensusAgentsTrainer(AgentsTrainer):
     #     good = torch.zeros_like(scores, dtype=torch.bool)
     #     bad = torch.zeros_like(scores, dtype=torch.bool)
     #     if self.n_agents > 0:
+    #         scores_argmin = (torch.where(neighbors, scores, torch.inf)).argmin(dim=-1)
+    #         scores_argmax = (torch.where(neighbors, scores, -torch.inf)).argmax(dim=-1)
     #         scores[~neighbors] = torch.nan
-    #         scores_argmin = scores.argmin(dim=-1)
-    #         scores_argmax = scores.argmax(dim=-1)
-    #         good[torch.arange(self.validity.n_agents), scores_argmin] = (
-    #             1.0 * ~scores.isnan()
-    #         )[
-    #             torch.arange(self.validity.n_agents), scores_argmin
+    #         good[torch.arange(self.n_agents), scores_argmin] = (1.0 * ~scores.isnan())[
+    #             torch.arange(self.n_agents), scores_argmin
     #         ].bool()  # good for best performer
-    #         bad[torch.arange(self.validity.n_agents), scores_argmax] = (
+    #         bad[torch.arange(self.n_agents), scores_argmax] = (
     #             1.0 * ~scores.isnan() * (n_neighbors > 1)
     #         )[
-    #             torch.arange(self.validity.n_agents), scores_argmax
+    #             torch.arange(self.n_agents), scores_argmax
     #         ].bool()  # bad for worst performer
     #     return good, bad
 

@@ -1,8 +1,8 @@
 import torch
 
 from abc import ABC, abstractmethod
-from .activation_function import ActivationInterface
-from .internal_model import InternalModelInterface
+from ..activation_function import ActivationInterface
+from ..internal_model import InternalModelInterface
 
 
 class LearningRule(ABC):
