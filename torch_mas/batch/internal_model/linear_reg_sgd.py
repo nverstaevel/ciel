@@ -58,6 +58,7 @@ class LinearSGD(InternalModelInterface):
         nb_to_add_per_agent = agent_mask.sum(-1)
         agents_to_update = nb_to_add_per_agent > 0
         n_agents_to_update = agents_to_update.sum()
+        self._sizes += nb_to_add_per_agent.view(self._sizes.size())
 
         weights = (
             agent_mask[agents_to_update].float().view(n_agents_to_update, batch_size, 1)
