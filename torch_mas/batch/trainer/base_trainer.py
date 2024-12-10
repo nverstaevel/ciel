@@ -25,7 +25,7 @@ def mse_loss(y_pred: torch.FloatTensor, y: torch.FloatTensor):
     return ((y_pred - y) ** 2).mean(dim=-1)
 
 
-class AgentsTrainer:
+class BaseTrainer:
     def __init__(
         self,
         activation: ActivationInterface,

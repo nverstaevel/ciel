@@ -10,7 +10,7 @@ from .learning_rules import (
     IfNoActivated,
     IfNoActivatedAndNoNeighbors,
 )
-from .base_trainer import AgentsTrainer
+from .base_trainer import BaseTrainer
 
 
 def mse_loss(y_pred: torch.FloatTensor, y: torch.FloatTensor):
@@ -52,7 +52,7 @@ def weighted_std(x, weights, dim):
     return torch.sqrt(variance)
 
 
-class ConsensusTrainer(AgentsTrainer):
+class ConsensusTrainer(BaseTrainer):
     def __init__(
         self,
         activation: ActivationInterface,
