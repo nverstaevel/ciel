@@ -24,7 +24,7 @@ class InternalModelInterface(ABC):
         Args:
             X (Tensor): (1, input_dim)
             y (Tensor): (1, output_dim)
-            agent_mask (BoolTensor): (n_agents,)
+            agent_mask (Longtensor): (n_agents_to_update,)
         """
         raise not NotImplementedError()
 
