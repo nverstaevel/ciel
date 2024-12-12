@@ -114,12 +114,13 @@ class BaseTrainer:
             bad = score > self.bad_th
 
             self.activation.update(X, agents_mask, good, bad, no_activated=False)
-
             agents_to_update = torch.arange(self.n_agents, device=self.device)[
                 agents_mask
             ][~bad & ~good | ~activated_maturity]
         if agents_to_update.size(0) > 0:
-            self.internal_model.update(X, y, agents_to_update.long())
+            agents_mask = torch.zeros(self.n_agents, dtype=torch.bool)
+            agents_mask[agents_to_update] = 1
+            self.internal_model.update(X, y, agents_to_update)
 
     def fit(self, dataset):
         n_samples = len(dataset)
