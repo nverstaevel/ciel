@@ -29,12 +29,11 @@ def _update_memory(X, y, mem_X, mem_y, mem_mask, batch_mask):
 _batch_update_memory = torch.vmap(_update_memory, in_dims=(None, None, 0, 0, 0, 0))
 
 class SVM(InternalModelInterface):
-    def __init__(self, input_dim, output_dim, memory_length, alpha, l1=0.1, device="cpu", **kwargs) -> None:
+    def __init__(self, input_dim, output_dim, memory_length, device="cpu", **kwargs) -> None:
         self.device = device
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.memory_length = memory_length
-        self.l1 = l1
 
         self.feature_memories: torch.Tensor = torch.empty(
             0, memory_length, input_dim, dtype=torch.float, device=device

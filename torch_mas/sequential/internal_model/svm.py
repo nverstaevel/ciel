@@ -9,13 +9,12 @@ from ...common.models.svm_sgd import (
 
 class SVM(InternalModelInterface):
     def __init__(
-        self, input_dim, output_dim, memory_length, l1, device="cpu", **kwargs
+        self, input_dim, output_dim, memory_length, device="cpu", **kwargs
     ):
         self.device = device
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.memory_length = memory_length
-        self.l1 = l1
 
         self.feature_memories: torch.Tensor = torch.empty(
             0, memory_length, input_dim, dtype=torch.float, device=device
