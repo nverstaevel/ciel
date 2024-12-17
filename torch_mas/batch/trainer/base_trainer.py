@@ -213,11 +213,11 @@ class BaseTrainer:
         # update models
         self.internal_model.update(X, y, models_to_update)
         # destroy agents
-        _to_destroy = torch.zeros(self.n_agents)
+        _to_destroy = torch.zeros(self.n_agents, dtype=torch.bool)
 
         n_to_destroy = agents_to_destroy.sum()
         if n_to_destroy > 0:
-            _to_destroy[agents_to_destroy.size(0)] = agents_to_destroy
+            _to_destroy[: agents_to_destroy.size(0)] = agents_to_destroy
             self.destroy_agents(_to_destroy)
 
     def fit(self, dataset):

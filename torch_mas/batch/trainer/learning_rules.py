@@ -145,3 +145,33 @@ class IfActivated(LearningRule):
             torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
             torch.zeros((n_agents,), dtype=torch.bool, device=device),
         )
+
+
+class SimpleDestroy(LearningRule):
+    def __init__(self, imbalance_th=20):
+        self.imbalance_th = imbalance_th
+
+    def __call__(
+        self,
+        X,
+        validity,
+        internal_model,
+        good,
+        bad,
+        activated,
+        neighbors,
+        n_activated,
+        n_neighbors,
+        maturity,
+    ):
+        batch_size = X.size(0)
+        device = X.device
+        n_agents = validity.n_agents
+        balanced = validity.bads - validity.goods
+        agents_to_destroy = (balanced > self.imbalance_th) & maturity
+        return (
+            torch.zeros(batch_size, dtype=torch.bool, device=device),
+            torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
+            torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
+            agents_to_destroy.view(-1),
+        )
