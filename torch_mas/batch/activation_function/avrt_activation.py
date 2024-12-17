@@ -46,6 +46,18 @@ class AVRTActivation(BaseActivation):
         self.orthotopes: torch.Tensor = torch.empty(
             0, input_dim, 2, device=device
         )  # (n_agents, input_dim, 2) Tensor of orthotopes
+        self.goods: torch.Tensor = torch.empty(
+            0,
+            1,
+            dtype=torch.long,
+            device=device,
+        )  # (n_agents, 1)
+        self.bads: torch.Tensor = torch.empty(
+            0,
+            1,
+            dtype=torch.long,
+            device=device,
+        )  # (n_agents, 1)
 
     def destroy(self, agents_mask):
         super().destroy(agents_mask)
@@ -68,6 +80,9 @@ class AVRTActivation(BaseActivation):
 
     def update(self, X, agents_mask, good, bad, no_activated=False):
         batch_size = X.size(0)
+        self.goods += good.sum(0).view(self.n_agents, 1)
+        self.bads += bad.sum(0).view(self.n_agents, 1)
+
         fb_t = torch.zeros((batch_size, self.n_agents), device=X.device)
         fb_t = torch.where(
             agents_mask & no_activated.view(batch_size, 1) & good, +1, fb_t

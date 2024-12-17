@@ -26,6 +26,18 @@ class BaseActivation(ActivationInterface):
         self.orthotopes: torch.Tensor = torch.empty(
             0, input_dim, 2, device=device
         )  # (n_agents, input_dim, 2) Tensor of orthotopes
+        self.goods: torch.Tensor = torch.empty(
+            0,
+            1,
+            dtype=torch.long,
+            device=device,
+        )  # (n_agents, 1)
+        self.bads: torch.Tensor = torch.empty(
+            0,
+            1,
+            dtype=torch.long,
+            device=device,
+        )  # (n_agents, 1)
 
     @property
     def n_agents(self):
@@ -33,6 +45,8 @@ class BaseActivation(ActivationInterface):
 
     def destroy(self, agents_mask):
         self.orthotopes = self.orthotopes[~agents_mask]
+        self.goods = self.goods[~agents_mask]
+        self.bads = self.bads[~agents_mask]
 
     def create(self, X, side_lengths):
         lows = X - side_lengths / 2
@@ -40,6 +54,12 @@ class BaseActivation(ActivationInterface):
 
         orthotopes = torch.stack([lows, highs], dim=-1)
         self.orthotopes = torch.vstack([self.orthotopes, orthotopes])
+
+        batch_size = X.size(0)
+        goods = torch.zeros((batch_size, 1), dtype=torch.long, device=self.device)
+        bads = torch.zeros((batch_size, 1), dtype=torch.long, device=self.device)
+        self.goods = torch.vstack([self.goods, goods])
+        self.bads = torch.vstack([self.bads, bads])
 
     def activated(self, X):
         agents_mask = batch_intersect_points(self.orthotopes, X)
@@ -66,6 +86,9 @@ class BaseActivation(ActivationInterface):
 
     def update(self, X, agents_mask, good, bad, no_activated=False):
         batch_size = X.size(0)
+        self.goods += good.sum(0).view(self.n_agents, 1)
+        self.bads += bad.sum(0).view(self.n_agents, 1)
+
         alphas = torch.zeros(
             (batch_size, self.n_agents), device=self.device
         )  # (batch_size, n_agents)
