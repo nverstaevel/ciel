@@ -1,9 +1,9 @@
 import torch
 import numpy as np
 
-from torch_mas.agents import Agents
-from torch_mas.orthotopes.hypercubes import *
-from torch_mas.models.linear_models import *
+from .agents import Agents
+from .orthotopes.hypercubes import *
+from .models.linear_models import *
 
 
 class Head:
@@ -18,10 +18,10 @@ class Head:
         agents: Agents,
         memory_length: int = 20,
         n_epochs: int = 10,
-        l1 = 0.0,
-        random_state = None,
-        verbose = False,
-        device = "cpu"
+        l1=0.0,
+        random_state=None,
+        verbose=False,
+        device="cpu",
     ) -> None:
         """Initialize the learning algorithm.
 
@@ -36,7 +36,7 @@ class Head:
             memory_length (int, optional): size of an agent's memory. Defaults to 20.
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
             l1 (float, optional): coefficient of l1 regularization. Defaults to 0.
-            random_state (optional): seed the RNG 
+            random_state (optional): seed the RNG
             verbose (boolean, optional): verbose option
         """
         self.input_dim = input_dim
@@ -61,7 +61,7 @@ class Head:
             self.memory_length,
             self.alpha,
             l1=self.l1_penalty,
-            device=device
+            device=device,
         )
 
         if self.random_state is not None:
@@ -85,16 +85,16 @@ class Head:
         n_neighbors = torch.count_nonzero(neighborhood_agents)
         activated_agents = self.agents.activated(X.squeeze(0))
         n_activated = torch.count_nonzero(activated_agents)
-        agents_to_update = torch.empty(0,device=self.device)
+        agents_to_update = torch.empty(0, device=self.device)
         if n_activated == 0 and n_neighbors == 0:
             created_idxs = self.agents.create_agents(X, self.R)
             agents_to_update = torch.concat([agents_to_update, created_idxs])
 
         if n_activated == 0 and n_neighbors > 0:
             expanded_mask = self.agents.immediate_expandable(X, neighborhood_agents)
-            expanded_idxs = torch.arange(self.agents.n_agents, device=self.device)[neighborhood_agents][
-                expanded_mask
-            ]
+            expanded_idxs = torch.arange(self.agents.n_agents, device=self.device)[
+                neighborhood_agents
+            ][expanded_mask]
             activated_maturity = self.agents.maturity(expanded_idxs).squeeze(-1)
             expanded_idxs = expanded_idxs[activated_maturity]
             n_expand_candidates = len(expanded_idxs)
@@ -108,9 +108,9 @@ class Head:
                     X, expanded_idxs, good, bad, no_activated=True
                 )
 
-                agents_to_update = torch.arange(self.agents.n_agents, device=self.device)[expanded_idxs][
-                    ~bad & ~good
-                ]
+                agents_to_update = torch.arange(
+                    self.agents.n_agents, device=self.device
+                )[expanded_idxs][~bad & ~good]
                 if bad.all():
                     created_idxs = self.agents.create_agents(X, self.R)
                     agents_to_update = torch.concat([agents_to_update, created_idxs])
@@ -133,9 +133,9 @@ class Head:
 
             self.agents.update_hypercube(X, agents_mask, good, bad, no_activated=False)
 
-            agents_to_update = torch.arange(self.agents.n_agents, device=self.device)[agents_mask][
-                ~bad & ~good | ~activated_maturity
-            ]
+            agents_to_update = torch.arange(self.agents.n_agents, device=self.device)[
+                agents_mask
+            ][~bad & ~good | ~activated_maturity]
         if agents_to_update.size(0) > 0:
             self.agents.update_model(X, y, agents_to_update.long())
 
@@ -152,8 +152,7 @@ class Head:
                 self._step += 1
 
             if self.verbose:
-                print(f'Epoch {e}: {self.agents.models.size(0)} agents')
-            
+                print(f"Epoch {e}: {self.agents.models.size(0)} agents")
 
     def predict(self, X):
         """Make a prediction

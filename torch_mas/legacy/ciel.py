@@ -1,8 +1,8 @@
 import torch
 from sklearn.base import BaseEstimator
 from torch_mas.data import DataBuffer
-from torch_mas.head import Head
-from torch_mas.agents import Agents
+from .head import Head
+from .agents import Agents
 
 
 class Ciel(BaseEstimator):
@@ -15,12 +15,12 @@ class Ciel(BaseEstimator):
         imprecise_th: float,
         bad_th: float,
         alpha: float,
-        agents:Agents,
+        agents: Agents,
         memory_length: int = 20,
         n_epochs: int = 10,
-        l1 = 0.0,
-        random_state = None,
-        verbose = False
+        l1=0.0,
+        random_state=None,
+        verbose=False,
     ) -> None:
         """Initialize the learning algorithm.
 
@@ -34,7 +34,7 @@ class Ciel(BaseEstimator):
             memory_length (int, optional): size of an agent's memory. Defaults to 20.
             n_epochs (int, optional): number of times each data point is seen by the agents during learning. Defaults to 10.
             l1 (float, optional): coefficient of l1 regularization. Defaults to 0.
-            random_state (optional): seed the RNG 
+            random_state (optional): seed the RNG
             verbose (boolean, optional): verbose option
         """
         self._estimator_type = "regressor"
@@ -64,18 +64,14 @@ class Ciel(BaseEstimator):
             self.n_epochs,
             self.l1,
             self.random_state,
-            self.verbose
+            self.verbose,
         )
-
-
 
     def fit(self, X, y):
         return self.estimator.fit(DataBuffer(X, y))
 
     def predict(self, X):
-        return (
-            self.estimator.predict(torch.from_numpy(X).float()).detach().numpy()
-        )
+        return self.estimator.predict(torch.from_numpy(X).float()).detach().numpy()
 
     def set_params(self, **params):
         if not params:
