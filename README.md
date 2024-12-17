@@ -4,7 +4,7 @@
 
 CIEL (Contextual Interactive Ensemble Learning) is a multiagent ensemble learning system designed for supervised learning tasks. It leverages multiple learning agents that collaborate to solve supervised learning tasks.
 
-### Prerequisites 🔑
+### Prerequisites
 
 - **Python 3.x** installed on your machine
 - **pip** (Python package installer)
@@ -23,33 +23,48 @@ To install the library:
 pip install git+https://github.com/nverstaevel/ciel.git
 ```
 
-## Repository
+## Repository 🗂️
 
 The repository is organized as follows:
 
 ```
 .
-├── examples/               # Example notebooks demonstrating code recipes
-│   └── <example_notebook>.ipynb    # Notebooks with usage examples and tutorials
+├── examples/       # Example notebooks demonstrating code recipes
+│   └── <example_notebook>.ipynb        # Notebooks with usage examples and tutorials
 │
-└── torch_mas/              # Core implementation of the multi-agent algorithms
-    ├── agents/             # Implementations of various agent types
-    │   └── <agent_type>.py           # Files for specific types of agents
+└── torch_mas/      # Core implementation of the multi-agent algorithms
+    ├── batch/      # Implementation of batch mode
+    │   ├── activation_function/        # Implementations of various activation functions
+    │   │   └── <activation>.py     # Code for specific activation functions
+    │   │
+    │   ├── internal_model/     # Implementations of internal models
+    │   │   └── <model>.py      # Code for specific types of internal models
+    │   │
+    │   └── trainer/        # Implementation of various trainer
+    │       ├── <trainer>.py        # Code for specific trainers
+    │       └── learning_rules.py       # Definitions of learning rules for trainers
     │
-    ├── models/             # Utilities for machine learning models
-    │   └── <model_utilities>.py      # Files for model utility functions, layers, etc.
+    ├── common/     # Utilities shared between batch and sequential modes
+    │   ├── models/     # Utilities for machine learning models
+    │   │   └── <model_utilities>.py        # Code for model utility functions, layers, etc.
+    │   │
+    │   └── orthotopes/     # Utilities for orthotope (n-dimensional rectangle) manipulation
+    │       └── <orthotope_utilities>.py        # Code for orthotope operations and utilities
     │
-    └── orthotopes/         # Utilities for orthotope (n-dimensional rectangle) manipulation
-        └── <orthotope_utilities>.py  # Files for orthotope operations and utilities
-    │
-    ├── batch_head.py       # Learning trainer implementation in batch setting
-    │
-    └── head.py             # Learning trainer implementation in sequential setting
+    └── sequential/     # Implementation of sequential mode
+        ├── activation_function/        # Implementations of various activation functions
+        │   └── <activation>.py     # Code for specific activation functions
+        │
+        ├── internal_model/     # Implementations of internal models
+        │   └── <model>.py      # Code for specific types of internal models
+        │
+        └── trainer/        # Implementation of various trainer
+            └── <trainer>.py        # Code for specific trainers
 ```
 
-## Context Learning
+## Context Learning 🤖
 
-### Context Agents 🤖
+### Context Agents 
 
 _A context agent is an expert entity on the function to be approximated in a small area inside the input space._
 
@@ -60,7 +75,7 @@ A context agent has 2 core components:
 
 <p align="center"><image src="images/context_agent_structure.png"></p>
 
-### Learning 🎓
+### Learning 
 
 A learning step follows the 5 following steps:
 
@@ -72,7 +87,7 @@ A learning step follows the 5 following steps:
 
 <p align="center"><image src="images/learning_with_context_agents.gif"></p>
 
-## Usage
+## Usage 🧑‍💻
 
 CIEL library features 2 learning modes:
 
@@ -83,28 +98,34 @@ Here is a simple code snippet to run batch learning:
 
 ```python
 import time
-from torch_mas.batch_head import BatchHead
-from torch_mas.agents.batch_agents_linear_reg import BatchLinearAgent
+from torch_mas.sequential.trainer import BaseTrainer as Trainer
+from torch_mas.sequential.internal_model import LinearWithMemory
+from torch_mas.sequential.activation_function import BaseActivation
 
 ...
 
 dataset = DataBuffer(X, y, device=device)
 
-model = BatchHead(
-    dataset.input_dim,
-    dataset.output_dim,
-    R=[0.5, 0.4],
+validity = BaseActivation(
+    dataset.input_dim, 
+    dataset.output_dim, 
+    alpha=0.1, 
+)
+
+internal_model = LinearWithMemory(
+    dataset.input_dim, 
+    dataset.output_dim, 
+    l1=0.1, 
+    memory_length=10, 
+)
+
+model = Trainer(
+    validity,
+    internal_model,
+    R=0.5,
     imprecise_th=0.01,
     bad_th=0.1,
-    n_epochs=20,
-    batch_size=256,
-    agents=BatchLinearAgent,
-    agents_kwargs={
-        "l1": 0.1,
-        "alpha": 0.3,
-        "memory_length": 10
-    },
-    device=device
+    n_epochs=5,
 )
 
 t = time.time()
@@ -112,22 +133,23 @@ model.fit(dataset)
 tt = time.time() - t
 print(f"Total training time: {tt}s")
 
-print("Number of agents created:", model.agents.n_agents)
+print("Number of agents created:", model.n_agents)
 ```
 
-A complete learning example is available in the following notebook: `examples/batch_simple_learning.ipynb` (`examples/simple_learning.ipynb` for sequential learning).
+Complete examples of learning (regression and classification) are available in [examples/](https://github.com/nverstaevel/ciel/tree/main/examples).
 
-## TODO Works
+## TODO Works 📝
 
 - [x] GPU Batch Training
-- [ ] GPU Sequential Training
+- [x] GPU Sequential Training
+- [x] Multiclass classification
+- [ ] Refine destruction of agents
 - [ ] Explainability Metrics
 - [ ] Compute SHAPley and LIME values
-- [ ] Refine destruction of agents
 - [ ] Benchmark performances on higher dimensional problems
-- [ ] Multiclass classification
 
-## References
+
+## References 📚
 
 - _Boes, Jérémy, Julien Nigon, Nicolas Verstaevel, Marie-Pierre Gleizes, and Frédéric Migeon. 2015. “The Self-Adaptive Context Learning Pattern: Overview and Proposal.” In SpringerLink, 91–104. Cham, Switzerland: Springer. https://doi.org/10.1007/978-3-319-25591-0_7._
 - _Verstaevel, Nicolas, Jérémy Boes, Julien Nigon, Dorian D’Amico, and Marie-Pierre Gleizes. 2017. “Lifelong Machine Learning with Adaptive Multi-Agent Systems” 1 (February):275–86. https://doi.org/10.5220/0006247302750286._
