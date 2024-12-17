@@ -30,6 +30,10 @@ class LinearSGD(InternalModelInterface):
     def n_agents(self):
         return self.models.size(0)
 
+    def destroy(self, agents_mask):
+        self.models = self.models[~agents_mask]
+        self._sizes = self._sizes[~agents_mask]
+
     def create(self, X):
         batch_size = X.size(0)
         models = torch.zeros(

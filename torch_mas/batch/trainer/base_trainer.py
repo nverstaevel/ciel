@@ -62,6 +62,15 @@ class BaseTrainer:
     def n_agents(self):
         return self.activation.n_agents
 
+    def destroy_agents(self, agents_to_destroy):
+        """Destroy Agents
+
+        Args:
+            agents_to_destroy (torch.BoolTensor): (n_agents,)
+        """
+        self.activation.destroy(agents_to_destroy)
+        self.internal_model.destroy(agents_to_destroy)
+
     def create_agents(self, X, agents_to_create, side_lengths):
         """Create agents
 
@@ -161,9 +170,17 @@ class BaseTrainer:
             dtype=torch.bool,
             device=self.device,
         )  # (n_agents, batch_size) batch points to use to update each agent
+        agents_to_destroy = torch.zeros(
+            (self.n_agents,), dtype=torch.bool, device=self.device
+        )  # (batch_sizen_agents,)
 
         for learning_rule in self.learning_rules:
-            _agents_to_create, _activation_to_update, _models_to_update = learning_rule(
+            (
+                _agents_to_create,
+                _activation_to_update,
+                _models_to_update,
+                _agents_to_destroy,
+            ) = learning_rule(
                 X,
                 self.activation,
                 self.internal_model,
@@ -178,6 +195,7 @@ class BaseTrainer:
             agents_to_create |= _agents_to_create
             hypercubes_to_update |= _activation_to_update
             models_to_update |= _models_to_update
+            agents_to_destroy |= _agents_to_destroy
 
         if self.n_agents > 0:
             # update orthotopes
@@ -194,6 +212,13 @@ class BaseTrainer:
         models_to_update = torch.vstack([models_to_update, models_to_init])
         # update models
         self.internal_model.update(X, y, models_to_update)
+        # destroy agents
+        _to_destroy = torch.zeros(self.n_agents)
+
+        n_to_destroy = agents_to_destroy.sum()
+        if n_to_destroy > 0:
+            _to_destroy[agents_to_destroy.size(0)] = agents_to_destroy
+            self.destroy_agents(_to_destroy)
 
     def fit(self, dataset):
         n_samples = len(dataset)

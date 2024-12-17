@@ -65,6 +65,13 @@ class LinearWithMemory(InternalModelInterface):
     def n_agents(self):
         return self.models.size(0)
 
+    def destroy(self, agents_mask):
+        self.feature_memories = self.feature_memories[~agents_mask]
+        self.target_memories = self.target_memories[~agents_mask]
+        self.memory_sizes = self.memory_sizes[~agents_mask]
+        self.memory_ptr = self.memory_ptr[~agents_mask]
+        self.models = self.models[~agents_mask]
+
     def create(self, X):
         batch_size = X.size(0)
         models = torch.zeros(

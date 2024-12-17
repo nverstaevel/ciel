@@ -50,10 +50,12 @@ class IfNoActivatedAndNoNeighbors(LearningRule):
         models_to_update = torch.zeros(
             (n_agents, batch_size), dtype=torch.bool, device=device
         )
+        agents_to_destroy = torch.zeros((n_agents,), dtype=torch.bool, device=device)
         return (
             agents_to_create,
             activation_to_update,
             models_to_update,
+            agents_to_destroy,
         )
 
 
@@ -91,15 +93,18 @@ class IfNoActivated(LearningRule):
                 (n_expand_candidates > 0) & expand_candidates.T
             )
             agents_to_create = mask_inc2 & (n_expand_candidates == 0)
+            agents_to_destroy = torch.zeros(n_agents, dtype=torch.bool, device=device)
             return (
                 agents_to_create,
                 activation_to_update,
                 models_to_update,
+                agents_to_destroy,
             )
         return (
             torch.zeros(batch_size, dtype=torch.bool, device=device),
             torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
             torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
+            torch.zeros((n_agents,), dtype=torch.bool, device=device),
         )
 
 
@@ -127,14 +132,16 @@ class IfActivated(LearningRule):
             activation_to_update = mask_inac & activated.T
             models_to_update = activated.T & (mask_inac & (~bad & ~good) | (~maturity))
             agents_to_create = torch.zeros(batch_size, dtype=torch.bool, device=device)
-
+            agents_to_destroy = torch.zeros(n_agents, dtype=torch.bool, device=device)
             return (
                 agents_to_create,
                 activation_to_update,
                 models_to_update,
+                agents_to_destroy,
             )
         return (
             torch.zeros(batch_size, dtype=torch.bool, device=device),
             torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
             torch.zeros((n_agents, batch_size), dtype=torch.bool, device=device),
+            torch.zeros((n_agents,), dtype=torch.bool, device=device),
         )

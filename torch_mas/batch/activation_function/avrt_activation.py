@@ -47,6 +47,11 @@ class AVRTActivation(BaseActivation):
             0, input_dim, 2, device=device
         )  # (n_agents, input_dim, 2) Tensor of orthotopes
 
+    def destroy(self, agents_mask):
+        super().destroy(agents_mask)
+        self.previous_fb = self.previous_fb[~agents_mask]
+        self.deltas = self.deltas[~agents_mask]
+
     def create(self, X, side_lengths):
         n_to_create = X.size(0)
 

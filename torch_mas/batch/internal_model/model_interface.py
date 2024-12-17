@@ -9,6 +9,15 @@ class InternalModelInterface(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def destroy(self, agents_mask: torch.BoolTensor):
+        """Destroy agents
+
+        Args:
+            agents_mask (torch.BoolTensor): (n_agents,)
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     def create(self, X: torch.Tensor):
         """Create new internal models
 

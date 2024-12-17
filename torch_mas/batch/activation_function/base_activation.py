@@ -31,6 +31,9 @@ class BaseActivation(ActivationInterface):
     def n_agents(self):
         return self.orthotopes.size(0)
 
+    def destroy(self, agents_mask):
+        self.orthotopes = self.orthotopes[~agents_mask]
+
     def create(self, X, side_lengths):
         lows = X - side_lengths / 2
         highs = X + side_lengths / 2
