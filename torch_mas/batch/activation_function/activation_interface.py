@@ -4,11 +4,11 @@ from abc import ABC, abstractmethod
 
 class ActivationInterface(ABC):
     @property
-    @abstractmethod
+    # @abstractmethod
     def n_agents(self):
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def destroy(self, agents_mask: torch.BoolTensor):
         """Destroy agents
 
@@ -17,7 +17,7 @@ class ActivationInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def create(
         self,
         X: torch.Tensor,
@@ -31,7 +31,7 @@ class ActivationInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def activated(self, X: torch.Tensor):
         """Get activated agents mask
 
@@ -43,7 +43,7 @@ class ActivationInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def neighbors(self, X: torch.Tensor, side_length: torch.Tensor):
         """Get neighbors agents mask
 
@@ -56,7 +56,7 @@ class ActivationInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def immediate_expandable(self, X: torch.Tensor):
         """Get a mask of agents that can do a one-step expansion to include X
 
@@ -68,7 +68,7 @@ class ActivationInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def update(
         self,
         X: torch.Tensor,
@@ -88,7 +88,7 @@ class ActivationInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def dist_to_border(self, X: torch.Tensor, agents_mask: torch.BoolTensor):
         """_summary_
 
@@ -101,7 +101,7 @@ class ActivationInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def clone(self):
         """Generates a deepcopy of the current state of the activation function."""
         raise NotImplementedError()

@@ -1,6 +1,8 @@
 import torch
 import copy
 
+from torch_mas.common.orthotopes.base import batch_create_hypercube
+
 from .activation_interface import ActivationInterface
 
 
@@ -62,10 +64,9 @@ class SmoothActivation(ActivationInterface):
         self.orthotopes = self.orthotopes[~agents_mask]
 
     def create(self, X, side_lengths):
-        lows = X - side_lengths / 2
-        highs = X + side_lengths / 2
-        orthotopes = torch.stack([lows, highs], dim=-1)
+        orthotopes = batch_create_hypercube(X, side_lengths)
         self.orthotopes = torch.vstack([self.orthotopes, orthotopes])
+        self.orthotopes.requires_grad_()
 
     def activated(self, X):
         return activated(X, self.orthotopes, self.limit_value)

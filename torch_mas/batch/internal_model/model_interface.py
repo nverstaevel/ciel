@@ -4,11 +4,11 @@ from abc import ABC, abstractmethod
 
 class InternalModelInterface(ABC):
     @property
-    @abstractmethod
+    # @abstractmethod
     def n_agents(self):
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def destroy(self, agents_mask: torch.BoolTensor):
         """Destroy agents
 
@@ -17,7 +17,7 @@ class InternalModelInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def create(self, X: torch.Tensor):
         """Create new internal models
 
@@ -26,7 +26,7 @@ class InternalModelInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def update(self, X: torch.Tensor, y: torch.Tensor, agent_mask: torch.BoolTensor):
         """Update the local model of specified agents.
 
@@ -37,7 +37,7 @@ class InternalModelInterface(ABC):
         """
         raise not NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def maturity(self, agents_mask: torch.BoolTensor):
         """Get maturity of specified agents
 
@@ -49,7 +49,7 @@ class InternalModelInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def __call__(self, X: torch.Tensor, agents_mask: torch.BoolTensor = None):
         """Retrieve predictions from agents
 
@@ -62,7 +62,7 @@ class InternalModelInterface(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    # @abstractmethod
     def clone(self):
         """Generates a deepcopy of the current state of the activation function."""
         raise NotImplementedError()

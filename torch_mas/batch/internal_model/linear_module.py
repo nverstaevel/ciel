@@ -16,7 +16,6 @@ class LinearModule(InternalModelInterface):
             input_dim + 1,
             output_dim,
             dtype=torch.float,
-            requires_grad=True,
             device=device,
         )  # (n_agents, input_dim+1, output_dim) Tensor of linear models
 
@@ -30,12 +29,14 @@ class LinearModule(InternalModelInterface):
     def create(self, X):
         batch_size = X.size(0)
         models = torch.zeros(
-            (batch_size, self.input_dim + 1, self.output_dim), device=self.device
+            (batch_size, self.input_dim + 1, self.output_dim),
+            device=self.device,
         )
         self.models = torch.vstack([self.models, models])
+        self.models.requires_grad_()
 
-    def __call__(self, X, agents_mask=None):
-        return batch_predict_linear_regression(X, self.models[agents_mask])
+    def __call__(self, X):
+        return batch_predict_linear_regression(X, self.models)
 
     def clone(self):
         cloned_self = copy.copy(self)  # shallow copy

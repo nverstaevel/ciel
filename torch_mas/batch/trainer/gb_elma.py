@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 
+from torch.utils.data import Dataset, DataLoader
 from typing import Callable
 from ..activation_function import SmoothActivation
 from ..internal_model import InternalModelInterface
@@ -13,7 +14,7 @@ class GBELMATrainer:
         self,
         activation: SmoothActivation,
         internal_model: InternalModelInterface,
-        n_agents: int,
+        n_agents_ini: int,
         R: list | float,
         lr=1e-3,
         criterion: Callable = F.mse_loss,
@@ -27,7 +28,7 @@ class GBELMATrainer:
         self.n_epochs = n_epochs
         self.batch_size = batch_size
         self.device = device
-        self.n_agents = n_agents
+        self.n_agents_init = n_agents_ini
         if isinstance(R, float):
             R = [R]
         self.side_lengths = torch.as_tensor(R, device=device)
@@ -46,7 +47,7 @@ class GBELMATrainer:
         self.activation.destroy(agents_to_destroy)
         self.internal_model.destroy(agents_to_destroy)
 
-    def create_agents(self, X, agents_to_create, side_lengths):
+    def create_agents(self, X, side_lengths):
         """Create agents
 
         Args:
@@ -57,38 +58,36 @@ class GBELMATrainer:
         Returns:
             BoolTensor: (n_created, batch_size,)
         """
-        batch_size = X.size(0)
-        lows = X - side_lengths / 2
-        highs = X + side_lengths / 2
-        hypercubes = torch.stack([lows, highs], dim=-1)  # (batch_size,)
-        agents_mask = (
-            batch_intersect_points(hypercubes, X) & agents_to_create
-        )  # (batch_size, n_hypercubes)
+        self.activation.create(X, side_lengths)
+        self.internal_model.create(X)
 
-        n_created = agents_to_create.sum()
-
-        self.activation.create(X[agents_to_create], side_lengths[agents_to_create])
-        self.internal_model.create(X[agents_to_create])
-
-        models_to_init = torch.zeros(
-            (n_created, batch_size), dtype=torch.bool
-        )  # (n_created, batch_size)
-        models_to_init = agents_mask[agents_to_create]
-        return models_to_init
-
-    def fit(self, dataset):
+    def fit(self, dataset: Dataset):
         n_samples = len(dataset)
+        train_dataloader = DataLoader(dataset, batch_size=self.batch_size)
 
+        # initialize agents
+        ini_indices = torch.randperm(n_samples)[: self.n_agents_init]
+        ini_X, _ = dataset[ini_indices]
+        self.create_agents(ini_X, self.side_lengths)
+
+        optimizer = torch.optim.Adam(
+            self.activation.parameters() + self.internal_model.parameters(), lr=self.lr
+        )
+
+        # training loop
         for _ in range(self.n_epochs):
-            indices = torch.arange(n_samples)
-            shuffled_indices = indices[torch.randperm(indices.size(0))]
-            batches = shuffled_indices.split(self.batch_size)
-            for batch in batches:
-                b_X, b_y = dataset[batch]
-                activations = self.activation.activated(b_X)
+            for b_X, b_y in train_dataloader:
+                activations = self.activation.activated(b_X).unsqueeze(-1)
                 propositions = self.internal_model(b_X)
-                predictions = torch.mean(predictions * activations, dim=0)
+                predictions = torch.mean(propositions * activations, dim=0)
 
                 loss = self.criterion(predictions, b_y)
 
-            # TODO create optimizers and update
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+    def predict(self, X):
+        activations = self.activation.activated(X).unsqueeze(-1)
+        propositions = self.internal_model(X)
+        return torch.mean(propositions * activations, dim=0)
