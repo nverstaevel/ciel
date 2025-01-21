@@ -1,14 +1,11 @@
 import torch
-import copy
 
 from . import BaseActivation
 from ...common.orthotopes.base import (
-    batch_intersect_points,
     batch_intersect_point,
     batch_create_hypercube,
     batch_intersect_hypercubes,
     batch_update_hypercube,
-    batch_dist_points_to_border,
 )
 
 batch_update_hypercubes = torch.vmap(batch_update_hypercube, in_dims=(None, 0, None))
@@ -16,7 +13,27 @@ batch_batch_intersect_points = torch.vmap(batch_intersect_point)
 batch_batch_update_hypercube = torch.vmap(batch_update_hypercube, in_dims=(None, 0, 0))
 
 
-class BaseActivation(BaseActivation):
+class BatchedActivation(BaseActivation):
+
+    def neighbors(self, X, side_length, batch_size_orthotopes=1024):
+        neighborhood = batch_create_hypercube(
+            X, torch.vstack([side_length] * X.size(0))
+        )
+
+        neighbor_mask = torch.empty(
+            (neighborhood.size(0), self.orthotopes.size(0)),
+            dtype=torch.bool,
+            device=self.device,
+        )
+
+        for i in range(0, self.orthotopes.size(0), batch_size_orthotopes):
+            neighbor_mask[:, i : i + batch_size_orthotopes] = (
+                batch_intersect_hypercubes(
+                    neighborhood, self.orthotopes[i : i + batch_size_orthotopes]
+                )
+            )
+
+        return neighbor_mask
 
     def immediate_expandable(self, X, batch_size_orthotopes=1024):
         all_expanded_mask = torch.empty(
@@ -47,9 +64,6 @@ class BaseActivation(BaseActivation):
         self.goods += good.sum(0).view(self.n_agents, 1)
         self.bads += bad.sum(0).view(self.n_agents, 1)
 
-        all_updated_orthotopes = torch.empty(
-            (X.size(0), self.orthotopes.size(0), X.size(-1), 2), device=self.device
-        )
         for i in range(0, self.orthotopes.size(0), batch_size_orthotopes):
 
             current_batch_size = self.orthotopes[i : i + batch_size_orthotopes].size(0)
@@ -81,12 +95,8 @@ class BaseActivation(BaseActivation):
                 orthotopes_batch, X, alphas
             )  # (batch_size, n_agents, in_dim, 2)
 
-            all_updated_orthotopes[:, i : i + batch_size_orthotopes] = (
-                updated_orthotopes
-            )
-
-        deltas = (
-            all_updated_orthotopes - self.orthotopes
-        )  # (batch_size, n_agents, in_dim, 2)
-        deltas = deltas.sum(dim=0)  # (n_agents, in_dim, 2)
-        self.orthotopes += deltas
+            deltas = (
+                updated_orthotopes - self.orthotopes[i : i + batch_size_orthotopes]
+            )  # (batch_size, n_agents, in_dim, 2)
+            deltas = deltas.sum(dim=0)
+            self.orthotopes[i : i + batch_size_orthotopes] += deltas
