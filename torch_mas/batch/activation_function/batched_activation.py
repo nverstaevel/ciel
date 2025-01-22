@@ -100,3 +100,16 @@ class BatchedActivation(BaseActivation):
             )  # (batch_size, n_agents, in_dim, 2)
             deltas = deltas.sum(dim=0)
             self.orthotopes[i : i + batch_size_orthotopes] += deltas
+
+    def dist_to_border(self, X, agents_mask):
+
+        dists_to_border = torch.empty(
+            (X.size(0), self.orthotopes[agents_mask].size(0)), device=self.device
+        )
+
+        for i in range(0, self.orthotopes[agents_mask].size(0), self.batch_fnc):
+            dists_to_border[:, i : i + self.batch_fnc] = batch_dist_points_to_border(
+                self.orthotopes[agents_mask][i : i + self.batch_fnc], X
+            )
+
+        return dists_to_border
