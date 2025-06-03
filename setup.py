@@ -1,8 +1,9 @@
 from setuptools import Extension, setup
+__version__ = "0.1.0"
 
 metadata = dict(
     name="ciel",
-    version=0.1.0,
+    version= __version__,
     description="CIEL (Contextual Interactive Ensemble Learning)",
     author="Nicolas Vestaevel et al.",
     author_email="nicolas.verstaevel@irit.fr",
