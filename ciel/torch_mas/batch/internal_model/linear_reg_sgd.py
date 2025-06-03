@@ -2,7 +2,6 @@ import torch
 import copy
 from .model_interface import InternalModelInterface
 from ...common.models.linear_models import (
-    batch_fit_linear_regression,
     batch_predict_linear_regression,
 )
 

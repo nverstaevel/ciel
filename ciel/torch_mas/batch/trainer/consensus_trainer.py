@@ -3,7 +3,6 @@ import torch
 from typing import Callable
 from ..activation_function import ActivationInterface
 from ..internal_model import InternalModelInterface
-from ...common.orthotopes.base import batch_intersect_points
 from .learning_rules import (
     LearningRule,
     IfActivated,

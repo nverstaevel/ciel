@@ -74,7 +74,6 @@ class NClass(InternalModelInterface):
         return self.memory_sizes[agents_mask] > (self.input_dim + 1)
 
     def update(self, X, y, agent_mask):
-
         agents_used = agent_mask.sum(dim=-1).bool()
         mask = agents_used & ~self.initialized
 

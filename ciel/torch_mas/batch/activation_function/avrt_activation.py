@@ -28,7 +28,7 @@ class AVRTActivation(BaseActivation):
         acoef=2,
         dcoef=1 / 3,
         device="cpu",
-        **kwargs
+        **kwargs,
     ):
         self.device = device
         self.input_dim = input_dim
