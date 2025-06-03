@@ -1,11 +1,9 @@
 import torch
 
 from . import BaseTrainer
-from ..activation_function import ActivationInterface
 
 
 class ClassifTrainer(BaseTrainer):
-
     def predict(self, X: torch.Tensor):
         batch_size = X.size(0)
         agents_mask = torch.ones(self.n_agents, dtype=torch.bool, device=self.device)
@@ -19,7 +17,7 @@ class ClassifTrainer(BaseTrainer):
         )
         mask = (neighbor_mask) & maturity_mask.T
         y_hat = self.internal_model(X, agents_mask).transpose(0, 1)
-        
+
         W = mask.float().unsqueeze(-1)
         nan_mask = ~(mask.any(dim=-1))  # check if no agents are selected
         W[nan_mask] = closest_mask[nan_mask].float()
@@ -29,7 +27,6 @@ class ClassifTrainer(BaseTrainer):
         y_hat = y_hat.float()
         y_hat[W == 0] = torch.nan
 
-        median_values,_ = y_hat.nanmedian(dim=1)  
+        median_values, _ = y_hat.nanmedian(dim=1)
 
         return median_values
-

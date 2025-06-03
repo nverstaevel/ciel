@@ -1,7 +1,6 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
 import torch.func as func
+
 
 def svm_loss(xx, yy, weight, bias, c):
     """Perform the loss of SGD SVM
@@ -28,9 +27,13 @@ def svm_loss(xx, yy, weight, bias, c):
 
     return loss
 
-_batch_grad_svm_loss = func.vmap(func.grad(svm_loss,argnums=(2,3)), in_dims=(0, 0, 0, 0, None))
 
-def batch_fit_linear_svm(X, Y, lr=0.1, epoch=10, device='cpu', batchsize=5, c=0.01):
+_batch_grad_svm_loss = func.vmap(
+    func.grad(svm_loss, argnums=(2, 3)), in_dims=(0, 0, 0, 0, None)
+)
+
+
+def batch_fit_linear_svm(X, Y, lr=0.1, epoch=10, device="cpu", batchsize=5, c=0.01):
     """Perform a batch of weighted linear regression
 
     Args:
@@ -52,16 +55,16 @@ def batch_fit_linear_svm(X, Y, lr=0.1, epoch=10, device='cpu', batchsize=5, c=0.
         perm = torch.randperm(m, device=device)
 
         for i in range(0, m, batchsize):
-            xx = X[:, perm[i : i + batchsize], :] 
-            yy = Y[:, perm[i : i + batchsize]]  
-            
+            xx = X[:, perm[i : i + batchsize], :]
+            yy = Y[:, perm[i : i + batchsize]]
+
             grads_w, grads_b = _batch_grad_svm_loss(*(xx, yy, weights, biases, c))
 
             with torch.no_grad():
                 weights -= lr * grads_w
                 biases -= lr * grads_b
 
-    return torch.cat((weights.detach(), biases.detach()),dim=1)
+    return torch.cat((weights.detach(), biases.detach()), dim=1)
 
 
 def predict_linear_svm(X, parameters):
@@ -85,9 +88,7 @@ def predict_linear_svm(X, parameters):
     return torch.where(signs == 0, 1, signs)
 
 
-_batch_predict_linear_svm = torch.vmap(
-    predict_linear_svm, in_dims=(None, 0)
-)
+_batch_predict_linear_svm = torch.vmap(predict_linear_svm, in_dims=(None, 0))
 
 
 def batch_predict_linear_svm(X, parameters):

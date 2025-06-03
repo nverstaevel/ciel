@@ -15,7 +15,6 @@ batch_batch_update_hypercube = torch.vmap(batch_update_hypercube, in_dims=(None,
 
 
 class BatchedActivation(BaseActivation):
-
     def __init__(
         self, input_dim, output_dim, alpha, device="cpu", batch_fnc=1024, **kwargs
     ):
@@ -68,7 +67,6 @@ class BatchedActivation(BaseActivation):
         self.bads += bad.sum(0).view(self.n_agents, 1)
 
         for i in range(0, self.orthotopes.size(0), self.batch_fnc):
-
             current_batch_size = self.orthotopes[i : i + self.batch_fnc].size(0)
 
             alphas = torch.zeros(
@@ -105,7 +103,6 @@ class BatchedActivation(BaseActivation):
             self.orthotopes[i : i + self.batch_fnc] += deltas
 
     def dist_to_border(self, X, agents_mask):
-
         dists_to_border = torch.empty(
             (X.size(0), self.orthotopes[agents_mask].size(0)), device=self.device
         )

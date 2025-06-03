@@ -1,9 +1,36 @@
-from .avrt import  init_deltas_avrt, batch_init_deltas_avrt, update_hypercube_avrt, batch_update_hypercube_avrt, expanded_hypercube_avrt, batch_expanded_hypercube_avrt,  check_hypercube,  batch_check_hypercube
-from .base import create_hypercube, batch_create_hypercube, intersect_point, batch_intersect_point, batch_intersect_points, intersect_hypercube, batch_intersect_hypercube, batch_intersect_hypercubes,update_hypercube,  batch_update_hypercube, sides, batch_sides, volume, batch_volume, dist_point_to_border,  batch_dist_point_to_border, batch_dist_points_to_border
+from .avrt import (
+    init_deltas_avrt,
+    batch_init_deltas_avrt,
+    update_hypercube_avrt,
+    batch_update_hypercube_avrt,
+    expanded_hypercube_avrt,
+    batch_expanded_hypercube_avrt,
+    check_hypercube,
+    batch_check_hypercube,
+)
+from .base import (
+    create_hypercube,
+    batch_create_hypercube,
+    intersect_point,
+    batch_intersect_point,
+    batch_intersect_points,
+    intersect_hypercube,
+    batch_intersect_hypercube,
+    batch_intersect_hypercubes,
+    update_hypercube,
+    batch_update_hypercube,
+    sides,
+    batch_sides,
+    volume,
+    batch_volume,
+    dist_point_to_border,
+    batch_dist_point_to_border,
+    batch_dist_points_to_border,
+)
 
 __all__ = [
     "init_deltas_avrt",
-"init_deltas_avrt",
+    "init_deltas_avrt",
     "batch_init_deltas_avrt",
     "update_hypercube_avrt",
     "batch_update_hypercube_avrt",
@@ -29,4 +56,3 @@ __all__ = [
     "batch_dist_point_to_border",
     "batch_dist_points_to_border",
 ]
-
